@@ -4,9 +4,12 @@
 //   node tools/build.mjs            проверить и собрать dist/
 //   node tools/build.mjs --check    только проверить (то же, что node tools/check.mjs)
 //   node tools/build.mjs --src <папка с пакетами> --out <куда собрать>
+//   node tools/build.mjs --allow-empty   собрать и пустую ленту (каталог, где пакетов ещё нет)
 //
 // Пакет с ошибкой не собирается — и весь каталог тоже: лента либо целая, либо прежняя. Зависимостей нет: Node 18+.
 // Формат — docs/plans/characters.md шлюза, раздел 2; схема — schemas/catalog.schema.json.
+// Дополнительные ленты (ступень 2, docs/plans/catalog-feeds.md шлюза) — из feeds.json в корне: в catalog.json они
+// попадают полем `feeds`, его читает шлюз 0.4.0 и новее; старые его пропускают.
 
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -26,21 +29,66 @@ const DEFAULT_MIN_GATEWAY = { character: '0.1.0', theme: '0.1.0' };
 /** Архив больше — установщик шлюза откажет. */
 const MAX_ARCHIVE_BYTES = 16 * 1024 * 1024;
 
+/** Дополнительных лент — не больше стольких: столько же читает шлюз. */
+const MAX_FEEDS = 4;
+
 function parseArgs(argv) {
-  const args = { check: false, src: join(ROOT, 'packages'), out: join(ROOT, 'dist') };
+  const args = { check: false, allowEmpty: false, src: join(ROOT, 'packages'), out: join(ROOT, 'dist') };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--check') args.check = true;
+    else if (arg === '--allow-empty') args.allowEmpty = true;
     else if (arg === '--src' || arg === '--out') {
       const value = argv[++i];
       if (!value) fail(`${arg}: нужна папка`);
       args[arg.slice(2)] = resolve(value);
     } else if (arg === '-h' || arg === '--help') {
-      console.log('node tools/build.mjs [--check] [--src packages] [--out dist]');
+      console.log('node tools/build.mjs [--check] [--allow-empty] [--src packages] [--out dist]');
       process.exit(0);
     } else fail(`не знаю аргумент ${arg}`);
   }
   return args;
+}
+
+/**
+ * Дополнительные ленты из feeds.json: `[{ url, publisher, title?, verified? }]`. Адрес — HTTPS (HTTP — только
+ * localhost и 127.0.0.1, для проверки), `publisher` — строчные латинские буквы, цифры и «-», `title` — до 40 знаков,
+ * `verified` — признаёт ли шлюз отметки `verified` пакетов этой ленты. Нет файла — нет и лент.
+ */
+function readFeeds() {
+  const file = join(ROOT, 'feeds.json');
+  if (!existsSync(file)) return [];
+  let list;
+  try {
+    list = JSON.parse(readFileSync(file, 'utf8'));
+  } catch (error) {
+    fail(`feeds.json: не JSON — ${error.message}`);
+  }
+  if (!Array.isArray(list)) fail('feeds.json: нужен список лент');
+  if (list.length > MAX_FEEDS) fail(`feeds.json: не больше ${MAX_FEEDS} лент`);
+  const seen = new Set();
+  return list.map((feed, i) => {
+    const at = `feeds.json[${i}]`;
+    if (!feed || typeof feed !== 'object') fail(`${at}: нужен объект`);
+    let url;
+    try {
+      url = new URL(feed.url);
+    } catch {
+      fail(`${at}.url: не адрес`);
+    }
+    const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) fail(`${at}.url: только HTTPS`);
+    if (seen.has(url.href)) fail(`${at}.url: эта лента уже есть`);
+    seen.add(url.href);
+    if (typeof feed.publisher !== 'string' || !/^[a-z0-9][a-z0-9-]{0,39}$/.test(feed.publisher)) {
+      fail(`${at}.publisher: строчные латинские буквы, цифры и «-», до 40 знаков`);
+    }
+    if (feed.title !== undefined && (typeof feed.title !== 'string' || !feed.title.trim() || feed.title.length > 40)) {
+      fail(`${at}.title: строка до 40 знаков`);
+    }
+    if (feed.verified !== undefined && typeof feed.verified !== 'boolean') fail(`${at}.verified: true или false`);
+    return { url: url.href, publisher: feed.publisher, title: feed.title?.trim(), verified: feed.verified ?? false };
+  });
 }
 
 function fail(message) {
@@ -130,11 +178,13 @@ function main() {
   if (!existsSync(args.src)) fail(`нет папки пакетов ${args.src}`);
 
   const results = packageDirs(args.src).map(checkPackage);
-  if (results.length === 0) fail(`в ${args.src} нет ни одного пакета`);
-  const ok = report(results);
+  if (results.length === 0 && !args.allowEmpty) fail(`в ${args.src} нет ни одного пакета (пустая лента — --allow-empty)`);
+  const ok = results.length === 0 || report(results);
   if (!ok) fail('есть ошибки — каталог не собран');
+  const feeds = readFeeds();
   if (args.check) {
-    console.log(`Проверка пройдена: ${plural(results.length, ['пакет', 'пакета', 'пакетов'])}.`);
+    const extra = feeds.length ? `, ${plural(feeds.length, ['дополнительная лента', 'дополнительные ленты', 'дополнительных лент'])}` : '';
+    console.log(`Проверка пройдена: ${plural(results.length, ['пакет', 'пакета', 'пакетов'])}${extra}.`);
     return;
   }
 
@@ -203,7 +253,7 @@ function main() {
     });
   }
 
-  const catalog = { format: FORMAT, updatedAt: updatedAt(args.src), packages };
+  const catalog = { format: FORMAT, updatedAt: updatedAt(args.src), packages, ...(feeds.length ? { feeds } : {}) };
   writeFileSync(join(out, 'catalog.json'), pretty(catalog) + '\n');
 
   const site = [];
@@ -218,6 +268,7 @@ function main() {
     console.log(`  ${p.url}  ${(p.size / 1024).toFixed(1)} КБ  sha256 ${p.sha256.slice(0, 12)}…  ${plural(p.preview.samples.length, ['фраза', 'фразы', 'фраз'])}  ${needs}`);
   }
   console.log(`  catalog.json, сайт: ${site.length ? site.map((s) => s.split(sep).pop()).join(', ') : 'нет'}`);
+  for (const feed of feeds) console.log(`  дополнительная лента: ${feed.url} — ${feed.title ?? feed.publisher}${feed.verified ? ', проверенная' : ''}`);
 }
 
 main();

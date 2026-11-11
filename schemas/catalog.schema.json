@@ -8,7 +8,13 @@
   "properties": {
     "format": { "const": 1 },
     "updatedAt": { "type": "string", "format": "date-time" },
-    "packages": { "type": "array", "items": { "$ref": "#/$defs/package" } }
+    "packages": { "type": "array", "items": { "$ref": "#/$defs/package" } },
+    "feeds": {
+      "type": "array",
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/feed" },
+      "description": "Дополнительные ленты (шлюз 0.4.0 и новее; старые поле пропускают). Шлюз читает их следом за этой; архивы и превью каждой — с её собственного адреса; пакет с id, который уже есть раньше, не берётся; код из дополнительных лент не ставится; ссылки на ленты внутри дополнительной шлюз пропускает."
+    }
   },
   "$defs": {
     "semver": {
@@ -34,6 +40,26 @@
         "optional": {
           "type": "boolean",
           "description": "true — без этого пакет работает (персонаж говорит запасным голосом)."
+        }
+      }
+    },
+    "publisher": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+      "description": "Кто выпускает пакеты: duowave, community, партнёр."
+    },
+    "feed": {
+      "type": "object",
+      "required": ["url", "publisher"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "format": "uri", "pattern": "^https://", "description": "Адрес ленты." },
+        "publisher": { "$ref": "#/$defs/publisher" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 40, "description": "Как назвать источник человеку; нет — publisher." },
+        "verified": {
+          "type": "boolean",
+          "default": false,
+          "description": "Признаёт ли шлюз отметки verified пакетов этой ленты."
         }
       }
     },
@@ -78,6 +104,10 @@
         "verified": {
           "type": "boolean",
           "description": "Пакет проверен нами. В нашем каталоге — всегда true; поле для чужих каталогов и пакетов, поставленных руками."
+        },
+        "publisher": {
+          "$ref": "#/$defs/publisher",
+          "description": "Кто выпустил пакет. У пакета дополнительной ленты шлюз берёт publisher её объявления."
         }
       }
     }
