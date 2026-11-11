@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Палыч — дед-ворчун</title>
+  <!-- фон: цвет персонажа и мягкий ореол -->
+  <rect width="512" height="512" fill="#77894F"/>
+  <circle cx="256" cy="236" r="196" fill="#FFFFFF" fill-opacity="0.13"/>
+  <circle cx="256" cy="236" r="150" fill="#FFFFFF" fill-opacity="0.07"/>
+
+  <!-- вязаная кофта -->
+  <path d="M80 512 C 90 432, 160 390, 256 386 C 352 390, 422 432, 432 512 Z" fill="#7B5A40"/>
+  <!-- рубашка в вырезе -->
+  <path d="M212 390 L256 470 L300 390 Z" fill="#D8CDB6"/>
+  <path d="M234 390 L256 430 L278 390 Z" fill="#C2B59A"/>
+  <!-- борта кофты с пуговицами -->
+  <path d="M212 390 L256 470 L246 512 L200 512 C 194 462, 192 420, 212 390 Z" fill="#8C6A4D"/>
+  <path d="M300 390 L256 470 L266 512 L312 512 C 318 462, 320 420, 300 390 Z" fill="#8C6A4D"/>
+  <circle cx="262" cy="490" r="6" fill="#4E3828"/>
+  <!-- вязка -->
+  <path d="M120 470 L180 470 M332 470 L392 470 M110 492 L178 492 M334 492 L402 492" fill="none" stroke="#6A4C35" stroke-opacity="1" stroke-width="4" stroke-linecap="round"/>
+  <!-- шея -->
+  <path d="M226 330 L286 330 L290 396 L222 396 Z" fill="#DDAE8C"/>
+
+  <!-- уши -->
+  <ellipse cx="166" cy="276" rx="20" ry="27" fill="#E5B593"/>
+  <ellipse cx="346" cy="276" rx="20" ry="27" fill="#E5B593"/>
+  <!-- голова -->
+  <ellipse cx="256" cy="268" rx="90" ry="100" fill="#EDC3A0"/>
+  <!-- седые волосы из-под кепки -->
+  <path d="M166 250 C 158 230, 166 214, 182 210 C 178 230, 182 246, 190 262 C 180 262, 170 258, 166 250 Z" fill="#F1EEE8"/>
+  <path d="M346 250 C 354 230, 346 214, 330 210 C 334 230, 330 246, 322 262 C 332 262, 342 258, 346 250 Z" fill="#F1EEE8"/>
+  <!-- кепка -->
+  <path d="M166 222 C 162 160, 214 128, 262 128 C 316 130, 354 162, 350 216 C 300 200, 220 200, 166 222 Z" fill="#8A6A45"/>
+  <path d="M190 170 C 220 152, 296 150, 330 168" fill="none" stroke="#7A5C3B" stroke-opacity="1" stroke-width="4" stroke-linecap="round"/>
+  <path d="M174 196 C 220 178, 300 178, 342 192" fill="none" stroke="#7A5C3B" stroke-opacity="1" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="258" cy="132" r="8" fill="#6E5236"/>
+  <!-- козырёк -->
+  <path d="M150 228 C 196 200, 318 196, 372 222 C 362 240, 304 236, 258 236 C 212 238, 176 246, 150 228 Z" fill="#5E4430"/>
+
+  <!-- морщины на лбу -->
+  <path d="M214 250 C 236 244, 276 244, 298 250" fill="none" stroke="#D29F7C" stroke-opacity="1" stroke-width="3" stroke-linecap="round"/>
+  <!-- кустистые брови, сведённые к переносице -->
+  <path d="M180 254 C 186 228, 226 226, 252 262 C 238 256, 222 255, 204 260 C 194 263, 184 262, 180 254 Z" fill="#F4F1EA"/>
+  <path d="M332 254 C 326 228, 286 226, 260 262 C 274 256, 290 255, 308 260 C 318 263, 328 262, 332 254 Z" fill="#F4F1EA"/>
+  <!-- глаза: прищур -->
+  <ellipse cx="222" cy="286" rx="7" ry="5" fill="#2A2522"/>
+  <ellipse cx="290" cy="286" rx="7" ry="5" fill="#2A2522"/>
+  <!-- круглые очки -->
+  <circle cx="222" cy="286" r="27" fill="#FFFFFF" fill-opacity="0.14" stroke="#2E2A26" stroke-opacity="1" stroke-width="5"/>
+  <circle cx="290" cy="286" r="27" fill="#FFFFFF" fill-opacity="0.14" stroke="#2E2A26" stroke-opacity="1" stroke-width="5"/>
+  <path d="M249 284 C 252 278, 260 278, 263 284" fill="none" stroke="#2E2A26" stroke-opacity="1" stroke-width="5" stroke-linecap="round"/>
+  <path d="M195 282 L170 276 M317 282 L342 276" fill="none" stroke="#2E2A26" stroke-opacity="1" stroke-width="4" stroke-linecap="round"/>
+  <!-- нос картошкой -->
+  <ellipse cx="256" cy="318" rx="20" ry="17" fill="#E4A585"/>
+  <!-- пышные усы -->
+  <path d="M256 330 C 236 320, 200 324, 186 356 C 198 350, 214 352, 224 360 C 236 350, 248 348, 256 350 C 264 348, 276 350, 288 360 C 298 352, 314 350, 326 356 C 312 324, 276 320, 256 330 Z" fill="#F4F1EA"/>
+  <!-- недовольная складка рта -->
+  <path d="M240 374 Q 256 368 272 374" fill="none" stroke="#A0614F" stroke-opacity="1" stroke-width="4" stroke-linecap="round"/>
+</svg>

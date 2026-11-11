@@ -1,0 +1,54 @@
+{
+  "$comment": "Как делаются голоса персонажей (tools/design.py). instruct — описание голоса для OmniVoice (voice design): пол male|female, возраст child|teenager|young adult|middle-aged|elderly, высота very low pitch … very high pitch, whisper, акцент (american accent, british accent, russian accent …), через запятую. Без пола модель выбирает его сама. reference — фраза образца: 5–8 секунд вслух, без пауз длиннее 0,7 с; из неё снимаются голоса под модели. samples — фразы-пробники (до трёх). adopted заполняет design.py, когда вариант выбран: так видно, из чего сделан голос.",
+  "language": "ru",
+  "characters": {
+    "arthur": {
+      "instruct": "male, middle-aged, low pitch",
+      "alternatives": ["male, elderly, moderate pitch", "male, middle-aged, low pitch, british accent"],
+      "note": "Ровный, бархатный, неторопливый. Британский акцент — попробовать, но русская речь должна остаться чистой.",
+      "reference": "Добрый вечер, сэр. Чай подан, почта разобрана, и в доме, смею заметить, идеальный порядок.",
+      "samples": [
+        "Чай подан, сэр.",
+        "Позволю себе заметить, сударыня: зонт сегодня будет не лишним.",
+        "Будильник заведён на семь. Разбужу вас, как всегда, деликатно."
+      ]
+    },
+    "kovcheg": {
+      "instruct": "female, middle-aged, low pitch",
+      "alternatives": ["female, young adult, moderate pitch", "female, middle-aged, moderate pitch"],
+      "note": "Ровный, очень спокойный, без эмоций — от этого чуть зловещий. Не шёпот.",
+      "reference": "Доброе утро, экипаж. Все системы в норме, температура на борту комфортная. Беспокоиться не о чем.",
+      "samples": [
+        "Запрос принят. Выполняю.",
+        "Состояние систем: в норме. Пока что.",
+        "Не волнуйтесь, экипаж. Я присматриваю за всем."
+      ]
+    },
+    "palych": {
+      "instruct": "male, elderly, low pitch",
+      "alternatives": ["male, elderly, moderate pitch", "male, elderly, very low pitch"],
+      "note": "Старческий, с хрипотцой, ворчливый, но тёплый.",
+      "reference": "Эх, опять ты за своё. Ладно, слушай сюда: раньше мы такое без всяких колонок знали.",
+      "samples": [
+        "Ну-ну. Сейчас всё сделаю, не торопи старика.",
+        "Завтра дождь. Зонт возьми, а то знаю я тебя.",
+        "Эх, в наше время будильников не было. Петух был!"
+      ]
+    },
+    "bublik": {
+      "instruct": "young adult, high pitch",
+      "alternatives": [
+        "male, young adult, moderate pitch",
+        "female, young adult, high pitch",
+        "male, teenager, high pitch"
+      ],
+      "note": "Пол любой — в описании его нет, модель предложит и те и другие. Ленивый, мурлыкающий, сытый.",
+      "reference": "Мурр. Ну ладно, так и быть, отвечу. Но потом сразу ужин и тёплый плед, договорились?",
+      "samples": [
+        "Мурр. Ладно, так и быть, помогу.",
+        "Таймер поставлен. Разбуди меня, когда будет еда.",
+        "Погода? Для сна — идеальная. Для всего остального — не знаю."
+      ]
+    }
+  }
+}

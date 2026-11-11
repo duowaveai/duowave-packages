@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Каталог DuoWave</title>
+  <meta name="description" content="Персонажи для голосового шлюза DuoWave: характер, голос и облик. Всё в каталоге проверено.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect width='28' height='28' rx='7' fill='%23CAEA72'/%3E%3Crect x='5' y='8.5' width='12' height='4' rx='2' fill='%23070707'/%3E%3Crect x='11' y='15.5' width='12' height='4' rx='2' fill='%23070707'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="site.css">
+  <script src="site.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#catalog">К каталогу</a>
+  <header class="top">
+    <div class="wrap top-row">
+      <a class="logo" href="./" aria-label="DuoWave — каталог пакетов">
+        <svg class="logo-mark" viewBox="0 0 28 28" aria-hidden="true">
+          <rect class="logo-tile" width="28" height="28" rx="7"/>
+          <rect class="logo-lane" x="5" y="8.5" width="12" height="4" rx="2"/>
+          <rect class="logo-lane" x="11" y="15.5" width="12" height="4" rx="2"/>
+        </svg>
+        <svg class="logo-word" viewBox="0 0 944 224" aria-hidden="true" fill="currentColor">
+          <path fill-rule="evenodd" d="M50 49H66A50 50 0 0 1 116 99V125A50 50 0 0 1 66 175H50A50 50 0 0 1 0 125V99A50 50 0 0 1 50 49ZM50 73H66A26 26 0 0 1 92 99V125A26 26 0 0 1 66 151H50A26 26 0 0 1 24 125V99A26 26 0 0 1 50 73Z"/>
+          <path d="M92 0H116V172H92V0Z"/>
+          <path d="M138 52V125A50 50 0 0 0 188 175H204A50 50 0 0 0 254 125V52H230V125A26 26 0 0 1 204 151H188A26 26 0 0 1 162 125V52Z"/>
+          <path d="M230 52H254V172H230V52Z"/>
+          <path fill-rule="evenodd" d="M326 49H342A50 50 0 0 1 392 99V125A50 50 0 0 1 342 175H326A50 50 0 0 1 276 125V99A50 50 0 0 1 326 49ZM326 73H342A26 26 0 0 1 368 99V125A26 26 0 0 1 342 151H326A26 26 0 0 1 300 125V99A26 26 0 0 1 326 73Z"/>
+          <path d="M406 52H428V136.5A16.5 16.5 0 0 0 461 136.5V76H483V136.5A16.5 16.5 0 0 0 516 136.5V52H538V136.5A38.5 38.5 0 0 1 472 163.44A38.5 38.5 0 0 1 406 136.5Z"/>
+          <path fill-rule="evenodd" d="M602 49H618A50 50 0 0 1 668 99V125A50 50 0 0 1 618 175H602A50 50 0 0 1 552 125V99A50 50 0 0 1 602 49ZM602 73H618A26 26 0 0 1 644 99V125A26 26 0 0 1 618 151H602A26 26 0 0 1 576 125V99A26 26 0 0 1 602 73Z"/>
+          <path d="M644 52H668V172H644V52Z"/>
+          <path d="M690 52L715.49 52L748 142.71L780.51 52L806 52L763 172L733 172Z"/>
+          <path fill-rule="evenodd" d="M878 49H894A50 50 0 0 1 944 99V122H852V125A26 26 0 0 0 878 151H894A26 26 0 0 0 908.3 146.71L908.3 172.91A50 50 0 0 1 894 175H878A50 50 0 0 1 828 125V99A50 50 0 0 1 878 49ZM878 73H894A26 26 0 0 1 920 99V98H852V99A26 26 0 0 1 878 73Z"/>
+        </svg>
+      </a>
+      <span class="top-label">Каталог</span>
+      <button class="gateway" id="gateway-button" type="button" aria-haspopup="dialog">
+        <span class="gateway-dot" aria-hidden="true"></span>
+        <span class="gateway-text">Шлюз: <b id="gateway-label">не указан</b></span>
+      </button>
+    </div>
+  </header>
+
+  <main id="catalog">
+    <section class="intro">
+      <div class="wrap">
+        <p class="eyebrow">DuoWave · пакеты</p>
+        <h1>Каталог для вашего голосового шлюза</h1>
+        <p class="lede">Персонажи с характером, голосом и обликом — а со временем темы пульта и плагины. Всё здесь проверено нами и ставится в шлюз одной кнопкой.</p>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <div class="status" id="status" role="status">Загружаю каталог…</div>
+      <div id="sections"></div>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-row">
+      <p><b>DuoWave</b> · <a href="https://duowave.ai">duowave.ai</a></p>
+      <p>Пакеты каталога — CC BY-NC 4.0: только некоммерческое использование. Голоса персонажей синтетические, ничьи.</p>
+      <p id="updated"></p>
+    </div>
+  </footer>
+
+  <dialog class="sheet" id="gateway-dialog" aria-labelledby="gateway-title">
+    <form method="dialog" id="gateway-form" novalidate>
+      <h2 id="gateway-title">Адрес вашего шлюза</h2>
+      <p>Адрес, по которому открывается пульт шлюза. Шлюз на этом компьютере — <code>http://localhost</code>; на другом — его адрес в домашней сети, например <code>http://192.168.1.20</code>.</p>
+      <label for="gateway-input">Адрес шлюза</label>
+      <input id="gateway-input" name="address" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="http://localhost" aria-describedby="gateway-error gateway-hint">
+      <p class="field-error" id="gateway-error" hidden>Нужен адрес вида http://192.168.1.20 или http://localhost</p>
+      <p class="hint" id="gateway-hint">Адрес хранится только в этом браузере, на сайт он не уходит.</p>
+      <div class="sheet-actions">
+        <button class="btn ghost" type="button" id="gateway-cancel">Отмена</button>
+        <button class="btn primary" type="submit" id="gateway-save">Сохранить</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

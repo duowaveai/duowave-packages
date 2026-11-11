@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://duowave.app/packages/schemas/catalog.schema.json",
+  "title": "Каталог пакетов DuoWave (catalog.json)",
+  "description": "Одна лента пакетов любого вида: персонажи, темы, позже плагины и приложения. Адреса — относительно самой ленты, с того же источника. Шлюз сверяет sha256 и size архива до распаковки.",
+  "type": "object",
+  "required": ["format", "updatedAt", "packages"],
+  "properties": {
+    "format": { "const": 1 },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "packages": { "type": "array", "items": { "$ref": "#/$defs/package" } }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "relative": {
+      "type": "string",
+      "description": "Путь относительно catalog.json: без схемы, без ведущего «/» и без «..».",
+      "pattern": "^(?![a-zA-Z][a-zA-Z0-9+.-]*:)(?!/)(?!(?:.*/)?\\.\\.(?:/|$))[^\\s]+$"
+    },
+    "need": {
+      "type": "object",
+      "required": ["kind", "id"],
+      "description": "Что пакету понадобится. Тот же язык, что needs у карточек голоса в шлюзе.",
+      "properties": {
+        "kind": { "enum": ["engine", "file"] },
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string" },
+        "downloadMb": { "type": "integer", "minimum": 0 },
+        "diskMb": { "type": "integer", "minimum": 0 },
+        "minutes": { "type": "number", "minimum": 0 },
+        "optional": {
+          "type": "boolean",
+          "description": "true — без этого пакет работает (персонаж говорит запасным голосом)."
+        }
+      }
+    },
+    "package": {
+      "type": "object",
+      "required": [
+        "id", "kind", "version", "title", "description", "api", "runs", "minGateway",
+        "url", "sha256", "size", "preview", "needs", "license", "verified"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z](?:[a-z0-9-]{0,30}[a-z0-9])?$" },
+        "kind": { "enum": ["plugin", "app", "character", "theme"] },
+        "version": { "$ref": "#/$defs/semver" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "description": { "type": "string", "maxLength": 500 },
+        "api": { "type": "string", "minLength": 1 },
+        "runs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["pc", "station", "stationServer"] }
+        },
+        "minGateway": { "$ref": "#/$defs/semver" },
+        "url": {
+          "allOf": [{ "$ref": "#/$defs/relative" }, { "type": "string", "pattern": "\\.vgp$" }],
+          "description": "Архив пакета: tar.gz, в корне manifest.json и assets/."
+        },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "size": { "type": "integer", "minimum": 1, "maximum": 16777216 },
+        "preview": {
+          "type": "object",
+          "required": ["samples"],
+          "description": "Картинка и фразы, чтобы галерея показывала и проигрывала пакет до установки.",
+          "properties": {
+            "image": { "$ref": "#/$defs/relative" },
+            "samples": { "type": "array", "maxItems": 3, "items": { "$ref": "#/$defs/relative" } }
+          },
+          "additionalProperties": false
+        },
+        "needs": { "type": "array", "items": { "$ref": "#/$defs/need" } },
+        "license": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "verified": {
+          "type": "boolean",
+          "description": "Пакет проверен нами. В нашем каталоге — всегда true; поле для чужих каталогов и пакетов, поставленных руками."
+        }
+      }
+    }
+  }
+}

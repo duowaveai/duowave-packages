@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Бублик — кот</title>
+  <!-- фон: цвет персонажа и мягкий ореол -->
+  <rect width="512" height="512" fill="#E09A45"/>
+  <circle cx="256" cy="236" r="196" fill="#FFFFFF" fill-opacity="0.14"/>
+  <circle cx="256" cy="236" r="150" fill="#FFFFFF" fill-opacity="0.08"/>
+
+  <!-- тело -->
+  <path d="M104 512 C 108 430, 170 384, 256 382 C 342 384, 404 430, 408 512 Z" fill="#F7DDB4"/>
+  <path d="M206 392 C 226 420, 286 420, 306 392 C 290 386, 222 386, 206 392 Z" fill="#FBEBD1"/>
+  <!-- хвост колечком -->
+  <path d="M372 488 C 440 486, 468 420, 440 386 C 420 362, 388 374, 394 398 C 398 414, 418 414, 424 402" fill="none" stroke="#EDB774" stroke-opacity="1" stroke-width="30" stroke-linecap="round"/>
+  <path d="M420 466 L444 480 M446 430 L470 432 M438 388 L456 372" fill="none" stroke="#D9843A" stroke-opacity="1" stroke-width="8" stroke-linecap="round"/>
+  <!-- лапы -->
+  <ellipse cx="214" cy="488" rx="32" ry="20" fill="#FBEBD1"/>
+  <ellipse cx="298" cy="488" rx="32" ry="20" fill="#FBEBD1"/>
+
+  <!-- уши -->
+  <path d="M142 236 L160 106 L246 178 Z" fill="#F7DDB4"/>
+  <path d="M370 236 L352 106 L266 178 Z" fill="#F7DDB4"/>
+  <path d="M164 208 L172 136 L222 180 Z" fill="#F2A99F"/>
+  <path d="M348 208 L340 136 L290 180 Z" fill="#F2A99F"/>
+  <!-- голова -->
+  <ellipse cx="256" cy="276" rx="142" ry="118" fill="#F7DDB4"/>
+  <!-- полоски на лбу -->
+  <path d="M240 162 L246 204 L256 162 Z" fill="#D9843A"/>
+  <path d="M212 168 L226 204 L230 164 Z" fill="#D9843A"/>
+  <path d="M300 168 L286 204 L282 164 Z" fill="#D9843A"/>
+  <!-- полоски на щеках -->
+  <path d="M116 272 L156 280 L118 290 Z" fill="#D9843A"/>
+  <path d="M396 272 L356 280 L394 290 Z" fill="#D9843A"/>
+  <!-- светлая мордочка -->
+  <ellipse cx="256" cy="326" rx="70" ry="50" fill="#FBEBD1"/>
+  <!-- румянец -->
+  <ellipse cx="180" cy="318" rx="24" ry="14" fill="#F2A99F" fill-opacity="0.55"/>
+  <ellipse cx="332" cy="318" rx="24" ry="14" fill="#F2A99F" fill-opacity="0.55"/>
+  <!-- сонные довольные глаза -->
+  <path d="M184 270 C 196 288, 226 288, 238 270 Z" fill="#3B2A1E"/>
+  <path d="M274 270 C 286 288, 316 288, 328 270 Z" fill="#3B2A1E"/>
+  <path d="M180 268 L242 268 M270 268 L332 268" fill="none" stroke="#3B2A1E" stroke-opacity="1" stroke-width="5" stroke-linecap="round"/>
+  <!-- нос -->
+  <path d="M242 306 L270 306 L256 322 Z" fill="#E98A86"/>
+  <!-- рот «мурр» -->
+  <path d="M256 322 L256 330 M234 332 Q 245 346 256 330 Q 267 346 278 332" fill="none" stroke="#3B2A1E" stroke-opacity="1" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- усы -->
+  <path d="M196 322 L96 306 M196 334 L94 342 M316 322 L416 306 M316 334 L418 342" fill="none" stroke="#FFF7EA" stroke-opacity="1" stroke-width="3" stroke-linecap="round"/>
+</svg>

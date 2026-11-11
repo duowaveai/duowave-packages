@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://duowave.app/packages/schemas/character-manifest.schema.json",
+  "title": "Манифест пакета-персонажа DuoWave",
+  "description": "manifest.json пакета вида character: характер, голос и оформление. Пакет — manifest.json и assets/, кода нет. Пути файлов — внутри assets/. Остальные проверки (размеры файлов, их типы, пакет меньше 1 МБ, чужие названия в текстах) делает tools/check.mjs.",
+  "type": "object",
+  "required": ["schema", "kind", "id", "version", "api", "title", "description", "runs", "license", "contributes"],
+  "properties": {
+    "schema": { "const": 1, "description": "Версия формата манифеста." },
+    "kind": { "const": "character" },
+    "id": { "$ref": "#/$defs/id", "description": "id пакета; совпадает с папкой packages/<id>." },
+    "version": { "$ref": "#/$defs/semver" },
+    "api": { "type": "string", "minLength": 1, "description": "Требование к Host API шлюза, например «^1»." },
+    "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "description": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "runs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["pc", "station", "stationServer"] },
+      "description": "Где пакет работает: на компьютере, на колонке, на колонке с компьютером как домашним сервером."
+    },
+    "license": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "minGateway": {
+      "$ref": "#/$defs/semver",
+      "description": "Необязательно: с какой версии шлюза пакет ставится. Читает только сборка каталога; без него — значение сборки по виду пакета."
+    },
+    "contributes": {
+      "type": "object",
+      "required": ["characters"],
+      "properties": {
+        "characters": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/character" } },
+        "intents": false,
+        "tools": false,
+        "media": false,
+        "events": false
+      }
+    },
+    "runtime": false,
+    "budget": false,
+    "settings": false,
+    "permissions": { "type": "array", "maxItems": 0, "description": "У персонажа нет кода — и прав нет." }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z](?:[a-z0-9-]{0,30}[a-z0-9])?$" },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "asset": {
+      "type": "string",
+      "description": "Путь внутри assets/: относительный, прямыми слешами, без «.» и «..».",
+      "pattern": "^(?!/)(?!.*\\\\)(?!(?:.*/)?\\.{1,2}(?:/|$))(?!.*//)[^\\u0000]+$"
+    },
+    "text": { "type": "string", "minLength": 1 },
+    "character": {
+      "type": "object",
+      "required": ["id", "gender", "color", "avatar", "prompt", "tones", "samples", "fallbackVoice", "voices", "voiceOrigin"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id",
+          "description": "id персонажа в пакете; полный id в шлюзе — <пакет>:<персонаж>, папка голоса — c-<пакет>-<персонаж>-<модель>."
+        },
+        "gender": {
+          "enum": ["male", "female", "any"],
+          "description": "Род в речи и выбор похожего запасного голоса: any — запасной голос любой, род в речи задаёт промт."
+        },
+        "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "avatar": { "$ref": "#/$defs/asset", "description": "WebP или PNG, квадрат (лучше 512×512), до 256 КБ. SVG нельзя." },
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000,
+          "description": "Кто персонаж, как говорит, в каком роде, чего никогда не делает. Без названий чужих продуктов: строку про слово-активацию и правила речи шлюз добавляет сам."
+        },
+        "tones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "default", "options"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,31}$" },
+              "title": { "type": "string", "minLength": 1, "maxLength": 40 },
+              "default": { "type": "integer", "minimum": 0, "description": "Номер положения по умолчанию, с нуля." },
+              "options": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 5,
+                "items": {
+                  "type": "object",
+                  "required": ["label", "line"],
+                  "properties": {
+                    "label": { "type": "string", "minLength": 1, "maxLength": 30 },
+                    "line": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 300,
+                      "pattern": "^[^\\n]*$",
+                      "description": "Одна строка, которую это положение подставляет в промт."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "samples": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "required": ["text", "file"],
+            "properties": {
+              "text": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "file": { "$ref": "#/$defs/asset", "description": "Opus (Ogg), до 64 КБ." }
+            },
+            "additionalProperties": false
+          }
+        },
+        "fallbackVoice": {
+          "type": "string",
+          "minLength": 1,
+          "description": "id встроенного голоса шлюза (piper-denis, piper-dmitri, piper-ruslan, piper-irina): им персонаж говорит, пока своего голоса нет."
+        },
+        "voices": {
+          "type": "object",
+          "description": "Снимки голоса по id модели (omnivoice, cosyvoice3, …). Неизвестные модели шлюз пропускает.",
+          "propertyNames": { "pattern": "^[a-z0-9][a-z0-9-]{0,31}$" },
+          "additionalProperties": {
+            "type": "object",
+            "required": ["file", "model"],
+            "properties": {
+              "file": { "$ref": "#/$defs/asset", "description": "torch.save в zip; шлюз читает его только с weights_only=True." },
+              "model": { "type": "string", "minLength": 1, "maxLength": 64, "description": "Ревизия весов модели: не совпала — снимок переснимается из ref." }
+            },
+            "additionalProperties": false
+          }
+        },
+        "ref": {
+          "type": "object",
+          "required": ["file", "text"],
+          "description": "Образец голоса (WAV) и его слова: из него шлюз переснимет голос под другую ревизию модели.",
+          "properties": {
+            "file": { "$ref": "#/$defs/asset" },
+            "text": { "type": "string", "minLength": 1, "maxLength": 500 }
+          },
+          "additionalProperties": false
+        },
+        "voiceOrigin": {
+          "enum": ["synthetic", "consent"],
+          "description": "synthetic — голос по описанию, ничей; consent — живой диктор с письменным согласием. Другого каталог не принимает."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

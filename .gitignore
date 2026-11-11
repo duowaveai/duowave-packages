@@ -1,0 +1,10 @@
+# сборка: node tools/build.mjs
+dist/
+# черновики голосов: tools/design.py (варианты, отпечатки)
+work/
+
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc
+node_modules/

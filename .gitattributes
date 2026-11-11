@@ -1,0 +1,7 @@
+# Тексты — с LF на любой системе: от байтов манифеста зависит хеш архива.
+* text=auto eol=lf
+*.webp binary
+*.png binary
+*.opus binary
+*.wav binary
+*.pt binary
