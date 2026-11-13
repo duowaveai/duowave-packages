@@ -1,7 +1,16 @@
 # The catalog on GitHub Pages: every push to main checks the packages, builds dist/ (node tools/build.mjs: the .vgp
 # archives, previews, hashes, catalog.json and the page) and serves it at https://packages.duowave.app — the address
 # every gateway release carries for good. Pages' source: GitHub Actions (Settings → Pages). Actions pinned to their
-# commits, nothing installed: the build is Node's own modules.
+# commits; the build is Node's own modules.
+#
+# The signature (stage 8 of the gateway's docs/plans/plugins.md): with the catalog's key in this repository's secrets
+# — PACKAGES_SECRET_KEY (the whole minisign secret key file) and PACKAGES_KEY_PASSWORD — catalog.json gets
+# catalog.json.minisig beside it, checked here against packages.pub: the open keys every gateway release carries (the
+# gateway's own packages.pub, the same file), the release key and the reserve, kept offline for the day the release
+# key is lost or leaks. A signature by either holds, here as in the gateway, so moving to the reserve is a change of
+# the secrets, not of a gateway (the gateway's docs/plans/key-rotation.md, «Ключ каталога»). Gateways with those keys
+# install plugins and apps only from a signed feed. Without the secrets the feed is built unsigned, with a warning;
+# minisign comes from Ubuntu's own archive, only when signing.
 name: pages
 on:
   push:
@@ -16,6 +25,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      SIGNING: ${{ secrets.PACKAGES_SECRET_KEY != '' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -24,6 +35,40 @@ jobs:
         with:
           node-version: 22
       - run: node tools/build.mjs
+      - name: Sign the catalog
+        if: env.SIGNING == 'true'
+        env:
+          PACKAGES_SECRET_KEY: ${{ secrets.PACKAGES_SECRET_KEY }}
+          PACKAGES_KEY_PASSWORD: ${{ secrets.PACKAGES_KEY_PASSWORD }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends minisign
+          umask 077
+          key="$RUNNER_TEMP/packages.key"
+          printf '%s\n' "$PACKAGES_SECRET_KEY" > "$key"
+          printf '%s\n' "$PACKAGES_KEY_PASSWORD" | minisign -S -s "$key" -m dist/catalog.json \
+            -x dist/catalog.json.minisig -t "duowave catalog $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          rm -f "$key"
+      - name: The signature holds
+        if: env.SIGNING == 'true'
+        # packages.pub is minisign's .pub files one after another (`minisign -V -p` would read only the first key):
+        # every line but the comments is a key, and the signature holds when one of them takes it.
+        run: |
+          keys=$(tr -d '\r' < packages.pub | grep -v -e '^untrusted comment:' -e '^[[:space:]]*$' || true)
+          [ -n "$keys" ] || { echo "::error::packages.pub has no key"; exit 1; }
+          for key in $keys; do
+            if minisign -Vq -P "$key" -m dist/catalog.json -x dist/catalog.json.minisig; then
+              echo "catalog.json is signed by $key"
+              exit 0
+            fi
+          done
+          echo "::error::catalog.json.minisig matches no key of packages.pub"
+          exit 1
+      - name: Unsigned
+        if: env.SIGNING != 'true'
+        run: >-
+          echo "::warning::no PACKAGES_SECRET_KEY in the secrets: catalog.json is unsigned, and gateways with the
+          catalog's keys install no plugins or apps from it"
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist

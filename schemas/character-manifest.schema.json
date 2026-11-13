@@ -149,8 +149,8 @@
           "additionalProperties": false
         },
         "voiceOrigin": {
-          "enum": ["synthetic", "consent"],
-          "description": "synthetic — голос по описанию, ничей; consent — живой диктор с письменным согласием. Другого каталог не принимает."
+          "enum": ["synthetic", "consent", "unknown"],
+          "description": "synthetic — голос по описанию, ничей; consent — живой диктор с письменным согласием; unknown — происхождение не проверено: только в своей ленте (feed.config.json own, шлюз 0.6.0+), наш каталог и магазин его не принимают."
         }
       },
       "additionalProperties": false

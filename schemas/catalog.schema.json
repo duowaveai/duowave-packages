@@ -8,7 +8,7 @@
   "properties": {
     "format": { "const": 1 },
     "updatedAt": { "type": "string", "format": "date-time" },
-    "packages": { "type": "array", "items": { "$ref": "#/$defs/package" } },
+    "packages": { "type": "array", "items": { "anyOf": [{ "$ref": "#/$defs/package" }, { "$ref": "#/$defs/hidden" }] } },
     "feeds": {
       "type": "array",
       "maxItems": 4,
@@ -17,6 +17,16 @@
     }
   },
   "$defs": {
+    "hidden": {
+      "type": "object",
+      "required": ["id", "hidden"],
+      "description": "Скрытый пакет (шлюз 0.6.0 и новее, docs/plans/custom-feeds.md): его нет в каталоге, а поставленный из этой же ленты шлюз убирает с экрана, пока лента так говорит. Шлюзы постарше такую запись пропускают как неполную.",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z](?:[a-z0-9-]{0,30}[a-z0-9])?$" },
+        "hidden": { "const": true }
+      },
+      "additionalProperties": false
+    },
     "semver": {
       "type": "string",
       "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"

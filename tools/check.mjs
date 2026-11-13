@@ -51,6 +51,37 @@ export const FALLBACK_VOICES = {
 export const GENDERS = ['male', 'female', 'any'];
 export const VOICE_ORIGINS = ['synthetic', 'consent'];
 
+/**
+ * Настройки ленты — feed.config.json в корне (нет файла — всё по умолчанию):
+ * - `own` — лента для своих источников шлюза (их добавляют по ссылке, docs/plans/custom-feeds.md шлюза): голос
+ *   неизвестного происхождения (`voiceOrigin: unknown`) можно, отметки `verified` нет. В нашем каталоге и магазине — нет.
+ * - `hidden` — id пакетов, которые шлюз скрывает (шлюз 0.6.0 и новее): в каталоге их нет, а поставленные из этой ленты
+ *   пропадают с экрана у всех. В catalog.json такой пакет — только `{ "id", "hidden": true }`.
+ */
+export function feedConfig() {
+  const file = join(ROOT, 'feed.config.json');
+  if (!existsSync(file)) return { own: false, hidden: [] };
+  let value;
+  try {
+    value = JSON.parse(readFileSync(file, 'utf8'));
+  } catch (error) {
+    throw new Error(`feed.config.json: не JSON — ${error.message}`);
+  }
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('feed.config.json: нужен объект');
+  const own = value.own ?? false;
+  if (typeof own !== 'boolean') throw new Error('feed.config.json: own — true или false');
+  const hidden = value.hidden ?? [];
+  if (!Array.isArray(hidden) || hidden.some((id) => !isPackageId(id))) {
+    throw new Error('feed.config.json: hidden — список id пакетов');
+  }
+  return { own, hidden: [...new Set(hidden)] };
+}
+
+/** Чей голос может быть у персонажа этой ленты: у своей ленты — и неизвестно чей (`unknown`). */
+export function voiceOrigins() {
+  return feedConfig().own ? [...VOICE_ORIGINS, 'unknown'] : VOICE_ORIGINS;
+}
+
 /** Что может лежать в assets/: картинки, звук, снимки голоса. SVG — нет (скрипт в пульте). */
 const ASSET_EXTENSIONS = new Set(['.webp', '.png', '.opus', '.wav', '.pt']);
 /** Мусор файловых менеджеров: не ошибка, но и в архив не идёт. */
@@ -447,8 +478,12 @@ export function checkPackage(dir) {
           warnings.push(`${where}: снимки есть, а ref нет — под новую ревизию модели шлюз голос не переснимет`);
         }
 
-        if (!VOICE_ORIGINS.includes(c.voiceOrigin)) {
-          errors.push(`${where}.voiceOrigin: synthetic (голос по описанию) или consent (диктор с письменным согласием) — другого каталог не принимает`);
+        if (!voiceOrigins().includes(c.voiceOrigin)) {
+          errors.push(
+            feedConfig().own
+              ? `${where}.voiceOrigin: synthetic, consent или unknown (происхождение не проверено — только в своей ленте)`
+              : `${where}.voiceOrigin: synthetic (голос по описанию) или consent (диктор с письменным согласием) — другого каталог не принимает`,
+          );
         }
       });
     }

@@ -10,12 +10,15 @@
 // Формат — docs/plans/characters.md шлюза, раздел 2; схема — schemas/catalog.schema.json.
 // Дополнительные ленты (ступень 2, docs/plans/catalog-feeds.md шлюза) — из feeds.json в корне: в catalog.json они
 // попадают полем `feeds`, его читает шлюз 0.4.0 и новее; старые его пропускают.
+// feed.config.json (docs/plans/custom-feeds.md шлюза): `hidden` — пакеты, которые шлюз 0.6.0+ скрывает (в ленте только
+// `{ id, hidden: true }`, без архива и превью; папку пакета можно оставить); `own` — лента для своих источников: без
+// отметки verified, голос `unknown` можно.
 
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve, relative, sep, isAbsolute } from 'node:path';
-import { ROOT, ENGINES, checkPackage, imageInfo, packageDirs, plural, report } from './check.mjs';
+import { ROOT, ENGINES, checkPackage, feedConfig, imageInfo, packageDirs, plural, report } from './check.mjs';
 import { readTarGz, tarGz } from './tar.mjs';
 
 /** Формат ленты, который читает шлюз. */
@@ -177,14 +180,26 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!existsSync(args.src)) fail(`нет папки пакетов ${args.src}`);
 
-  const results = packageDirs(args.src).map(checkPackage);
-  if (results.length === 0 && !args.allowEmpty) fail(`в ${args.src} нет ни одного пакета (пустая лента — --allow-empty)`);
+  let config;
+  try {
+    config = feedConfig();
+  } catch (error) {
+    fail(error.message);
+  }
+  // Скрытые не проверяются и не собираются: в ленте от них остаётся только id.
+  const results = packageDirs(args.src)
+    .filter((dir) => !config.hidden.includes(dir.split(sep).pop()))
+    .map(checkPackage);
+  if (results.length === 0 && config.hidden.length === 0 && !args.allowEmpty) {
+    fail(`в ${args.src} нет ни одного пакета (пустая лента — --allow-empty)`);
+  }
   const ok = results.length === 0 || report(results);
   if (!ok) fail('есть ошибки — каталог не собран');
   const feeds = readFeeds();
   if (args.check) {
     const extra = feeds.length ? `, ${plural(feeds.length, ['дополнительная лента', 'дополнительные ленты', 'дополнительных лент'])}` : '';
-    console.log(`Проверка пройдена: ${plural(results.length, ['пакет', 'пакета', 'пакетов'])}${extra}.`);
+    const hidden = config.hidden.length ? `, скрыто: ${config.hidden.join(', ')}` : '';
+    console.log(`Проверка пройдена: ${plural(results.length, ['пакет', 'пакета', 'пакетов'])}${extra}${hidden}.`);
     return;
   }
 
@@ -249,9 +264,11 @@ function main() {
       preview,
       needs: needsOf(m),
       license: m.license,
-      verified: true,
+      // Своя лента (feed.config.json own) ни за кого не ручается.
+      verified: !config.own,
     });
   }
+  for (const id of config.hidden) packages.push({ id, hidden: true });
 
   const catalog = { format: FORMAT, updatedAt: updatedAt(args.src), packages, ...(feeds.length ? { feeds } : {}) };
   writeFileSync(join(out, 'catalog.json'), pretty(catalog) + '\n');
@@ -262,8 +279,14 @@ function main() {
   writeFileSync(join(out, '.nojekyll'), '');
 
   console.log('');
-  console.log(`Каталог собран в ${relative(process.cwd(), out) || '.'}/ — ${plural(packages.length, ['пакет', 'пакета', 'пакетов'])}, обновлён ${catalog.updatedAt}:`);
+  const built = packages.filter((p) => !p.hidden).length;
+  const own = config.own ? ' (своя лента: без отметки verified)' : '';
+  console.log(`Каталог собран в ${relative(process.cwd(), out) || '.'}/ — ${plural(built, ['пакет', 'пакета', 'пакетов'])}${own}, обновлён ${catalog.updatedAt}:`);
   for (const p of packages) {
+    if (p.hidden) {
+      console.log(`  ${p.id}: скрыт — шлюзы 0.6.0+ уберут его с экрана`);
+      continue;
+    }
     const needs = p.needs.length ? `нужна модель: ${p.needs.map((n) => n.title ?? n.id).join(' или ')}` : 'без моделей';
     console.log(`  ${p.url}  ${(p.size / 1024).toFixed(1)} КБ  sha256 ${p.sha256.slice(0, 12)}…  ${plural(p.preview.samples.length, ['фраза', 'фразы', 'фраз'])}  ${needs}`);
   }
