@@ -11,6 +11,11 @@
 # the secrets, not of a gateway (the gateway's docs/plans/key-rotation.md, «Ключ каталога»). Gateways with those keys
 # install plugins and apps only from a signed feed. Without the secrets the feed is built unsigned, with a warning;
 # minisign comes from Ubuntu's own archive, only when signing.
+#
+# Code only in a signed feed: the build takes plugins and apps into catalog.json only with --signed, and this job passes
+# it only when the key is in the secrets — the step after the build signs, and the one after that fails the job if the
+# signature does not hold, so a feed with code is never served unsigned. Without the key the build names every package
+# with code it left out and builds the rest.
 name: pages
 on:
   push:
@@ -34,7 +39,13 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
-      - run: node tools/build.mjs
+      - name: Build
+        run: |
+          if [ "$SIGNING" = true ]; then
+            node tools/build.mjs --signed
+          else
+            node tools/build.mjs
+          fi
       - name: Sign the catalog
         if: env.SIGNING == 'true'
         env:
@@ -67,8 +78,8 @@ jobs:
       - name: Unsigned
         if: env.SIGNING != 'true'
         run: >-
-          echo "::warning::no PACKAGES_SECRET_KEY in the secrets: catalog.json is unsigned, and gateways with the
-          catalog's keys install no plugins or apps from it"
+          echo "::warning::no PACKAGES_SECRET_KEY in the secrets: catalog.json is unsigned, so the build left out every
+          plugin and app, and gateways with the catalog's keys install no code from it"
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist

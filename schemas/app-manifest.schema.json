@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://duowave.app/packages/schemas/app-manifest.schema.json",
+  "title": "Манифест приложения DuoWave",
+  "description": "manifest.json пакета вида app: своя программа рядом со шлюзом — скрипт, который запускает Node шлюза (runtime node, только компьютер), или сборка под каждую платформу (runtime process). Повторяет правила шлюза (gateway/src/plugins/manifest.rs, docs/plugins/AUTHORING.md — «Приложения», «Приложение на Node»); точнее схемы — tools/check.mjs: он же проверяет, что скрипт и сборки на месте и хеши сходятся, что node_modules/ в пакете нет, а зависимости из package-lock.json — из registry.npmjs.org с integrity, пределы архива и чужие названия в текстах. В ленту каталога код идёт только подписанным.",
+  "type": "object",
+  "required": ["schema", "kind", "id", "version", "api", "title", "description", "runtime", "runs", "license"],
+  "properties": {
+    "schema": { "const": 1, "description": "Версия формата манифеста." },
+    "kind": { "const": "app" },
+    "id": { "$ref": "#/$defs/id", "description": "id пакета; совпадает с папкой packages/<id>." },
+    "version": { "$ref": "#/$defs/semver" },
+    "api": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Требование к Host API шлюза — сейчас он 2.0, пишите «^2». Приложение под Host API 1 шлюз не включает."
+    },
+    "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "description": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "license": { "type": "string", "minLength": 1, "maxLength": 200, "description": "Лицензия кода одной строкой, например «Apache-2.0»." },
+    "minGateway": {
+      "$ref": "#/$defs/semver",
+      "description": "Необязательно: с какой версии шлюза приложение ставится. Ниже нижней границы сборки каталога (0.7.0 — Host API 2; у runtime node — 0.9.0) в ленте не будет."
+    },
+    "runtime": {
+      "enum": ["node", "process"],
+      "description": "node — скрипт на Node шлюза (одна закреплённая версия Node 24 LTS, только компьютер); process — своя сборка под каждую платформу (targets)."
+    },
+    "node": {
+      "type": "object",
+      "description": "Только у runtime node.",
+      "properties": {
+        "entry": {
+          "type": "string",
+          "default": "index.js",
+          "pattern": "^(?!/)(?!.*//)(?!\\.)(?!.*/\\.)[^/]{1,80}(?:/[^/]{1,80})*\\.(?:js|mjs|cjs)$",
+          "description": "Скрипт, который запускает шлюз: путь в пакете, .js, .mjs или .cjs. Шлюз запускает node --max-old-space-size=<budget.memoryMb> <entry>."
+        }
+      }
+    },
+    "targets": {
+      "type": "object",
+      "description": "Только у runtime process: сборка под каждую платформу и её SHA-256 — шлюз сверяет хеш перед каждым запуском. В ленте у каждой платформы свой архив (platforms).",
+      "propertyNames": { "pattern": "^[a-z0-9]+-[a-z0-9_]+$" },
+      "additionalProperties": { "$ref": "#/$defs/target" },
+      "examples": [{ "linux-aarch64": { "file": "bin/app-aarch64", "sha256": "…" }, "darwin-arm64": { "file": "bin/app-darwin", "sha256": "…" } }]
+    },
+    "health": {
+      "type": "object",
+      "description": "Как надзор шлюза спрашивает, жива ли программа: GET <path> раз в intervalS секунд.",
+      "properties": {
+        "path": { "type": "string", "pattern": "^/", "default": "/health" },
+        "intervalS": { "type": "integer", "minimum": 5, "maximum": 300, "default": 15 }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["pc", "station", "stationServer"] },
+      "description": "Где работает: на компьютере, на колонке, на колонке с компьютером как домашним сервером. У runtime node — только pc: на колонке Node нет."
+    },
+    "prefer": {
+      "enum": ["home", "here"],
+      "description": "home — в режиме «колонка + сервер» вызовы идут на компьютер, пока он на связи."
+    },
+    "dataVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295,
+      "description": "Вид данных, которые хранит приложение: поднимайте, когда меняете, как они устроены."
+    },
+    "budget": {
+      "type": "object",
+      "description": "Пределы, которые держит шлюз.",
+      "properties": {
+        "memoryMb": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024,
+          "default": 4,
+          "description": "Память: у runtime node до 1024 (сам Node держит 40–60 МБ), у остальных до 64. В ленте — budget.memoryMb: на колонке не влезающее приложение серое."
+        },
+        "storageMb": { "type": "integer", "minimum": 1, "maximum": 64, "default": 1, "description": "Хранилище kv." },
+        "filesMb": { "type": "integer", "minimum": 1, "maximum": 4096, "default": 64, "description": "Своя папка на шине (files/app/<id>) на компьютере." },
+        "tasks": { "type": "integer", "minimum": 1, "maximum": 4, "default": 1, "description": "Долгих задач сразу." }
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/permission" },
+      "description": "Права Host API 2 — только двух видов: куда в интернете (net:<хост>) и до чего в доме на шине (see:/listen:/call:/edit:<адрес>). Слова Host API 1 (voice.say, kv, smart_home…) — ошибка."
+    },
+    "settings": { "type": "array", "maxItems": 30, "items": { "$ref": "#/$defs/setting" } },
+    "contributes": { "$ref": "#/$defs/contributes" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "runtime": { "const": "node" } }, "required": ["runtime"] },
+      "then": { "properties": { "runs": { "items": { "const": "pc" } } } },
+      "else": { "properties": { "budget": { "properties": { "memoryMb": { "maximum": 64 } } } } }
+    },
+    {
+      "if": { "properties": { "runtime": { "const": "process" } }, "required": ["runtime"] },
+      "then": { "required": ["targets"], "properties": { "targets": { "minProperties": 1 } } }
+    }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z](?:[a-z0-9-]{0,30}[a-z0-9])?$" },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z_$][A-Za-z0-9_$]{0,63}$",
+      "description": "Имя функции приложения: латинские буквы, цифры, _ и $, не с цифры."
+    },
+    "newsName": { "type": "string", "pattern": "^[a-z][a-z0-9._-]{0,63}$" },
+    "packagePath": {
+      "type": "string",
+      "description": "Путь в пакете: части непустые, не с точки, каждая до 80 байт.",
+      "pattern": "^(?!/)(?!.*//)(?!\\.)(?!.*/\\.)[^/]{1,80}(?:/[^/]{1,80})*$"
+    },
+    "busPattern": {
+      "type": "string",
+      "description": "Адрес на шине (вид/путь: system/voice, app/notes, files/home/Документы), он же с /* (и всё под ним) или * — всё.",
+      "pattern": "^(?:\\*|[a-z][a-z0-9-]{0,31}(?:/(?!\\.{1,2}(?:/|$))[^/*\\\\\\u0000-\\u001f]{1,128})*(?:/\\*)?)$"
+    },
+    "target": {
+      "type": "object",
+      "required": ["file", "sha256"],
+      "properties": {
+        "file": { "$ref": "#/$defs/packagePath" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" }
+      }
+    },
+    "permission": {
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "net:<хост> — fetch к этому хосту; net:*.<домен> — к его поддоменам. Строчные латинские, без схемы, порта и пути, хотя бы две части.",
+          "pattern": "^net:(?:\\*\\.)?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+        },
+        {
+          "type": "string",
+          "description": "Связь на шине: see (видеть), listen (слышать новости), call (звать умения, у папки — читать), edit (править). call:system/voice, call:system/brain, listen:device/midi, edit:files/home/Документы/*.",
+          "pattern": "^(?:see|listen|call|edit):(?:\\*|[a-z][a-z0-9-]{0,31}(?:/(?!\\.{1,2}(?:/|$))[^/*\\\\\\u0000-\\u001f]{1,128})*(?:/\\*)?)$"
+        }
+      ]
+    },
+    "setting": {
+      "type": "object",
+      "required": ["key", "type"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$" },
+        "type": { "enum": ["string", "number", "boolean"] },
+        "title": { "type": "string", "maxLength": 80 },
+        "description": { "type": "string", "maxLength": 300 },
+        "default": { "description": "Подходит к type (и к options)." },
+        "options": { "type": "array", "minItems": 1, "items": { "type": "string" }, "description": "Только у type string: из чего выбирать." },
+        "secret": {
+          "type": "boolean",
+          "default": false,
+          "description": "Только у type string: ключ, тайная ссылка. Хранится в сейфе шлюза; пульт видит только «••••••», программа приложения — как есть."
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "secret": { "const": true } }, "required": ["secret"] }, "then": { "properties": { "type": { "const": "string" } } } },
+        { "if": { "required": ["options"] }, "then": { "properties": { "type": { "const": "string" } } } }
+      ]
+    },
+    "capability": {
+      "description": "Возможность, которой служит вклад: её права и маршрут. Управление колонкой (volume, playback, bluetooth, timers, alarms, do_not_disturb, calls) — только у встроенных навыков.",
+      "enum": [
+        "chat", "radio", "music", "tales", "games", "skills", "reminders", "later", "weather", "news", "morning_show",
+        "smart_home", "led", "music_recognition", "account", "plugins", "memory"
+      ]
+    },
+    "intent": {
+      "type": "object",
+      "required": ["phrases", "handler"],
+      "properties": {
+        "phrases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "maxLength": 160,
+            "description": "Команда целиком, со словом в начале; места — {имя} (до 4, не подряд, не request).",
+            "pattern": "^\\s*[^{\\s]"
+          }
+        },
+        "handler": { "$ref": "#/$defs/identifier" },
+        "capability": { "$ref": "#/$defs/capability" }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "required": ["name", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^(?!mcp_)[a-z][a-z0-9_]{0,47}$",
+          "not": {
+            "enum": [
+              "set_volume", "control_playback", "bluetooth", "set_timer", "manage_timer", "set_alarm", "manage_alarm",
+              "do_not_disturb", "play_music", "start_game", "set_reminder", "get_weather", "get_news", "smart_home",
+              "phone_call", "send_voice_message", "yandex_skill", "yandex_account", "play_radio", "tell_tale",
+              "recognize_music", "morning_show"
+            ]
+          },
+          "description": "Имя инструмента для «Мозга»; имена встроенных и mcp_… заняты."
+        },
+        "description": { "type": "string", "minLength": 1, "maxLength": 1024, "description": "По нему мозг выбирает инструмент." },
+        "input": { "$ref": "#/$defs/objectSchema" },
+        "inputSchema": { "$ref": "#/$defs/objectSchema" },
+        "handler": { "$ref": "#/$defs/identifier", "description": "Функция приложения (POST /call/<handler>); по умолчанию — name." },
+        "capability": { "$ref": "#/$defs/capability" },
+        "annotations": {
+          "type": "object",
+          "properties": {
+            "readOnlyHint": { "type": "boolean" },
+            "destructiveHint": { "type": "boolean" },
+            "openWorldHint": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "objectSchema": {
+      "type": "object",
+      "required": ["type"],
+      "properties": { "type": { "const": "object" } },
+      "description": "JSON Schema объекта."
+    },
+    "media": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z](?:[a-z0-9_-]{0,30}[a-z0-9_])?$" },
+        "kind": { "enum": ["radio", "music", "tales"] },
+        "handler": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": ["name", "handler"],
+      "properties": {
+        "name": {
+          "enum": [
+            "station.connected", "station.disconnected", "mode.changed", "homeServer.up", "homeServer.down",
+            "player.started", "player.stopped", "player.failed", "player.silent"
+          ]
+        },
+        "handler": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "clock": { "type": "string", "pattern": "^\\s*(?:[01]?\\d|2[0-3]):[0-5]\\d\\s*$" },
+    "schedule": {
+      "type": "object",
+      "required": ["id"],
+      "description": "Ритм: at (ЧЧ:ММ или {ключ} строковой настройки) с days — или every (5m…1d) с окном from–to; затем handler — или готовый ответ say/notify. Нужна связь call:system/schedule (say — и call:system/voice, notify — call:system/notify).",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string", "maxLength": 40 },
+        "at": { "type": "string", "pattern": "^\\s*(?:(?:[01]?\\d|2[0-3]):[0-5]\\d|\\{[^}]+\\})\\s*$" },
+        "days": {
+          "oneOf": [
+            { "enum": ["daily", "weekdays", "weekends"] },
+            { "type": "array", "minItems": 1, "items": { "enum": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] } }
+          ]
+        },
+        "every": { "type": "string", "pattern": "^\\s*\\d+[mhd]\\s*$", "description": "От 5m до 1d." },
+        "from": { "$ref": "#/$defs/clock", "default": "08:00" },
+        "to": { "type": "string", "pattern": "^\\s*(?:(?:[01]?\\d|2[0-3]):[0-5]\\d|24:00)\\s*$", "default": "22:00" },
+        "handler": { "$ref": "#/$defs/identifier" },
+        "say": { "type": "string", "minLength": 1 },
+        "notify": { "type": "string", "minLength": 1 },
+        "once": false,
+        "after": false
+      },
+      "oneOf": [
+        { "required": ["at"], "not": { "required": ["every"] } },
+        { "required": ["every"], "not": { "anyOf": [{ "required": ["at"] }, { "required": ["days"] }] } }
+      ],
+      "anyOf": [
+        { "required": ["handler"], "not": { "anyOf": [{ "required": ["say"] }, { "required": ["notify"] }] } },
+        { "anyOf": [{ "required": ["say"] }, { "required": ["notify"] }], "not": { "required": ["handler"] } }
+      ]
+    },
+    "bus": {
+      "type": "object",
+      "description": "Своё на шине: личные умения (private), опасные (danger), новости, которые рассказывает (emits) и слушает (on, нужно право listen:), функция, что отвечает словами (ask).",
+      "properties": {
+        "private": { "type": "array", "items": { "anyOf": [{ "$ref": "#/$defs/identifier" }, { "$ref": "#/$defs/newsName" }] } },
+        "emits": { "type": "array", "items": { "anyOf": [{ "$ref": "#/$defs/identifier" }, { "$ref": "#/$defs/newsName" }] } },
+        "danger": {
+          "type": "object",
+          "additionalProperties": { "enum": ["money", "delete", "outside", "locks", "camera", "access"] }
+        },
+        "ask": { "$ref": "#/$defs/identifier" },
+        "on": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "event", "handler"],
+            "properties": {
+              "from": { "$ref": "#/$defs/busPattern" },
+              "event": { "$ref": "#/$defs/newsName" },
+              "handler": { "$ref": "#/$defs/identifier" }
+            }
+          }
+        }
+      }
+    },
+    "contributes": {
+      "type": "object",
+      "description": "Что приложение даёт: фразы, инструменты «Мозга», источники для плеера, события, ритмы, своё на шине и часть пульта (карточки, окно panel.js) — шлюз зовёт его функции по HTTP (POST /call/<функция>).",
+      "properties": {
+        "intents": { "type": "array", "items": { "$ref": "#/$defs/intent" } },
+        "tools": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/tool" } },
+        "media": { "type": "array", "items": { "$ref": "#/$defs/media" } },
+        "events": { "type": "array", "items": { "$ref": "#/$defs/event" } },
+        "schedules": { "type": "array", "maxItems": 10, "items": { "$ref": "#/$defs/schedule" } },
+        "bus": { "$ref": "#/$defs/bus" },
+        "panel": { "type": "object", "description": "Часть пульта: calls, cards, разделы окна — docs/plugins/AUTHORING.md, «Пульт»." },
+        "themes": { "type": "array" },
+        "characters": { "type": "array" }
+      }
+    }
+  }
+}

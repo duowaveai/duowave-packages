@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "kind": "app",
+  "runtime": "node",
+  "node": { "entry": "engine/server.mjs" },
+  "id": "feed",
+  "version": "0.4.0",
+  "title": "Лента",
+  "description": "Мини-сериалы, которые снимает для вас ваш компьютер: выбираете развилку — история продолжается. Голос, кто пишет и вкус ленты — на ваш выбор.",
+  "languages": ["ru", "en"],
+  "locales": {
+    "en": {
+      "title": "Feed",
+      "description": "Mini-series your computer shoots for you: choose at the fork and the story goes on. The voices, who writes and the feed’s taste are your choice.",
+      "settings": {
+        "announce": { "title": "Say “Episode ready”" },
+        "directorPerDay": { "title": "Director: episodes a day, at most" },
+        "telegramChannel": { "title": "Telegram: channel to publish to (@name; the gateway’s bot is its admin)" },
+        "renderServer": { "title": "Render server (address; empty — this computer draws)" },
+        "renderKey": { "title": "Render server key" }
+      },
+      "schedules": { "night": { "title": "An episode by morning" } },
+      "intents": {
+        "whatsNew": ["what's in the feed", "what's new in the feed"],
+        "voiceNext": ["shoot an episode", "shoot the next episode", "next in the feed"],
+        "voiceStart": ["turn on the feed", "start the feed"],
+        "voiceHelp": ["what can the feed do", "feed commands"],
+        "voiceCommand": ["feed {command}", "in the feed {command}"],
+        "voiceChoose": ["i choose the {which} option", "i choose option {which}"],
+        "voiceLike": ["i liked the episode", "i like the episode"],
+        "voiceDislike": ["i didn't like the episode", "i didn't like the episode {why}"]
+      }
+    }
+  },
+  "license": "Apache-2.0",
+  "api": "^2",
+  "runs": ["pc"],
+  "prefer": "home",
+  "budget": { "memoryMb": 768, "filesMb": 4096, "tasks": 2 },
+  "permissions": ["call:system/brain", "call:system/voice", "call:system/voice/cloud", "call:system/hearing", "call:system/notify", "call:system/schedule", "call:system/memory", "call:system/publish"],
+  "health": { "path": "/health", "intervalS": 15 },
+  "settings": [
+    { "key": "announce", "type": "boolean", "title": "Говорить «Серия готова»", "default": true },
+    { "key": "directorPerDay", "type": "number", "title": "Режиссёр: серий в день, не больше", "default": 5 },
+    { "key": "telegramChannel", "type": "string", "title": "Telegram: канал для публикации (@имя; бот шлюза — его админ)" },
+    { "key": "renderServer", "type": "string", "title": "Сервер рендера (адрес; пусто — рисует этот компьютер)" },
+    { "key": "renderKey", "type": "string", "title": "Ключ сервера рендера", "secret": true }
+  ],
+  "contributes": {
+    "schedules": [
+      { "id": "night", "title": "Серия к утру", "at": "04:30", "days": "daily", "handler": "night" }
+    ],
+    "intents": [
+      { "phrases": ["что в ленте", "что нового в ленте"], "handler": "whatsNew" },
+      { "phrases": ["сними серию", "сними следующую серию", "дальше в ленте"], "handler": "voiceNext" },
+      { "phrases": ["включи ленту", "запусти ленту", "начни ленту"], "handler": "voiceStart" },
+      { "phrases": ["что умеет лента", "команды ленты"], "handler": "voiceHelp" },
+      { "phrases": ["лента", "лента {command}", "в ленте {command}"], "handler": "voiceCommand" },
+      { "phrases": ["выбираю {which} вариант"], "handler": "voiceChoose" },
+      { "phrases": ["серия понравилась"], "handler": "voiceLike" },
+      { "phrases": ["серия не понравилась", "серия не понравилась {why}"], "handler": "voiceDislike" }
+    ],
+    "tools": [
+      {
+        "name": "feed_status",
+        "description": "Что в «Ленте»: сериалы, последние серии с развилками, идёт ли съёмка",
+        "handler": "toolStatus",
+        "input": { "type": "object", "properties": {} },
+        "annotations": { "readOnlyHint": true }
+      },
+      {
+        "name": "feed_vote",
+        "description": "Голос со страницы «смотри и выбирай» (зовёт шлюз)",
+        "handler": "vote",
+        "input": { "type": "object", "properties": { "id": { "type": "string" }, "choice": { "type": "string" }, "votes": { "type": "array" } } }
+      },
+      {
+        "name": "feed_guide",
+        "description": "Как снять серию «Ленты» кодом: правила, библиотека, декорации, пример; какая серия следующая",
+        "handler": "guide",
+        "input": { "type": "object", "properties": {} },
+        "annotations": { "readOnlyHint": true }
+      },
+      {
+        "name": "feed_render_episode",
+        "description": "Озвучить и отрендерить серию, которую написали кодом (episodes/<id>/), и поставить её в ленту — долгой задачей",
+        "handler": "renderEpisode",
+        "input": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] }
+      },
+      {
+        "name": "feed_check_episode",
+        "description": "Собрать серию «Ленты», написанную кодом, и отрендерить три кадра: собралось ли и что сломалось",
+        "handler": "checkEpisode",
+        "input": { "type": "object", "properties": { "id": { "type": "string", "description": "id серии, например kompas-03" } }, "required": ["id"] }
+      }
+    ],
+    "panel": {
+      "sections": [{ "id": "feed", "title": "Лента", "icon": "sparkle" }],
+      "calls": [
+        "status", "stories", "voices", "sample", "intro", "next", "rate", "choose", "wish", "taste", "forget",
+        "configure", "season", "switchSeries", "newStory", "prepareShare", "shareText", "shareChoice", "revoice",
+        "ownVoice", "lines", "card", "publishTelegram", "watchLink", "models", "command", "cancel", "eleven", "cast"
+      ]
+    }
+  }
+}

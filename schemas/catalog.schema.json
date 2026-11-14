@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://duowave.app/packages/schemas/catalog.schema.json",
   "title": "Каталог пакетов DuoWave (catalog.json)",
-  "description": "Одна лента пакетов любого вида: персонажи, темы, позже плагины и приложения. Адреса — относительно самой ленты, с того же источника. Шлюз сверяет sha256 и size архива до распаковки.",
+  "description": "Одна лента пакетов любого вида: персонажи, темы, плагины и приложения. Адреса — относительно самой ленты, с того же источника. Шлюз сверяет sha256 и size архива до распаковки. Плагины и приложения шлюз ставит, только если лента подписана ключом каталога (catalog.json.minisig рядом); сборка кладёт их в ленту только с --signed.",
   "type": "object",
   "required": ["format", "updatedAt", "packages"],
   "properties": {
@@ -85,6 +85,21 @@
         "version": { "$ref": "#/$defs/semver" },
         "title": { "type": "string", "minLength": 1, "maxLength": 80 },
         "description": { "type": "string", "maxLength": 500 },
+        "languages": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z]{2,3}$" },
+          "description": "Языки пакета, первый — язык title и description (манифест languages)."
+        },
+        "locales": {
+          "type": "object",
+          "description": "Название и описание на других языках: по коду языка {title, description}. Шлюз показывает пакет на языке человека, нет перевода — по-английски.",
+          "propertyNames": { "pattern": "^[a-z]{2,3}$" },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "title": { "type": "string", "maxLength": 80 }, "description": { "type": "string", "maxLength": 500 } }
+          }
+        },
         "api": { "type": "string", "minLength": 1 },
         "runs": {
           "type": "array",
@@ -95,7 +110,7 @@
         "minGateway": { "$ref": "#/$defs/semver" },
         "url": {
           "allOf": [{ "$ref": "#/$defs/relative" }, { "type": "string", "pattern": "\\.vgp$" }],
-          "description": "Архив пакета: tar.gz, в корне manifest.json и assets/."
+          "description": "Архив пакета: tar.gz, в корне manifest.json и файлы пакета (у персонажа и темы — assets/). У приложения со сборками — общий архив со всеми; шлюз берёт архив своей платформы из platforms."
         },
         "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
         "size": { "type": "integer", "minimum": 1, "maximum": 16777216 },
@@ -118,7 +133,41 @@
         "publisher": {
           "$ref": "#/$defs/publisher",
           "description": "Кто выпустил пакет. У пакета дополнительной ленты шлюз берёт publisher её объявления."
+        },
+        "platforms": {
+          "type": "object",
+          "description": "Приложение со сборками (runtime process): архив под каждую платформу, в нём только её сборка. Шлюз берёт архив своей платформы (darwin-arm64, linux-aarch64, linux-x86_64…); нет её — приложение серое с причиной.",
+          "propertyNames": { "pattern": "^[a-z0-9]+-[a-z0-9_]+$" },
+          "additionalProperties": { "$ref": "#/$defs/archive" }
+        },
+        "runtime": {
+          "enum": ["js", "wasm", "mcp", "node", "process"],
+          "description": "Пакет с кодом: чем он работает. js, wasm, mcp — у плагина; node (скрипт на Node шлюза, только компьютер) и process (своя сборка) — у приложения. У персонажа и темы поля нет."
+        },
+        "budget": {
+          "type": "object",
+          "description": "Пакет с кодом: пределы из манифеста (со значениями шлюза по умолчанию). memoryMb шлюз сверяет со свободной памятью колонки; filesMb — сколько места займёт папка приложения на компьютере.",
+          "properties": {
+            "memoryMb": { "type": "integer", "minimum": 1, "maximum": 1024 },
+            "filesMb": { "type": "integer", "minimum": 1, "maximum": 4096 }
+          }
+        },
+        "permissions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^(?:net|see|listen|call|edit):" },
+          "description": "Пакет с кодом: права из манифеста — net:<хост> и связи шины see:/listen:/call:/edit:<адрес>. Страница каталога показывает их до установки."
         }
+      }
+    },
+    "archive": {
+      "type": "object",
+      "required": ["url", "sha256", "size"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "allOf": [{ "$ref": "#/$defs/relative" }, { "type": "string", "pattern": "\\.vgp$" }] },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "size": { "type": "integer", "minimum": 1, "maximum": 16777216 }
       }
     }
   }

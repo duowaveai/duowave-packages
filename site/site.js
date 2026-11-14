@@ -23,6 +23,20 @@
 
   const PLACES = { pc: 'на компьютере', station: 'на колонке', stationServer: 'на колонке' };
 
+  /** Права пакета словами — до установки (как в пульте шлюза). */
+  const RIGHTS = {
+    'call:system/brain': 'модель «Мозга»: пишет тексты',
+    'call:system/voice': 'голос: говорить и озвучивать в свою папку',
+    'call:system/notify': 'сообщения владельцу',
+    'call:system/schedule': 'своё расписание',
+    'call:system/memory': 'интересы дома из памяти — по вашему «да»',
+    'call:system/publish': 'публикация: Telegram ботом шлюза, ссылка «смотри и выбирай»',
+    'call:system/smart-home': 'умный дом',
+    'call:system/content': 'музыка и сказки семьи',
+  };
+  const rightWords = (right) => (right.startsWith('net:') ? `сеть: ${right.slice(4)}` : RIGHTS[right] || right);
+  const coded = (pkg) => pkg.kind === 'app' || pkg.kind === 'plugin';
+
   const $ = (id) => document.getElementById(id);
 
   /** Элемент с атрибутами и детьми; текст — только как текст, без разметки из ленты. */
@@ -246,6 +260,12 @@
     const places = placesFact(pkg);
     if (places) facts.push(['Шлюз', [places]]);
     if (pkg.license) facts.push(['Лицензия', [pkg.license]]);
+    // Код приходит только в подписанной ленте: значит, его проверили и подписали мы.
+    if (coded(pkg)) facts.push(['Подписано', ['DuoWave — код проверен']]);
+    if (pkg.runtime === 'node' || pkg.runtime === 'process') {
+      facts.push(['Собирает', [`компьютер: своя программа${pkg.runtime === 'node' ? ' на Node' : ''} с правами пользователя`]]);
+    }
+    if (pkg.permissions && pkg.permissions.length) facts.push(['Права', [pkg.permissions.map(rightWords).join(' · ')]]);
 
     const listen = samples.length
       ? el(

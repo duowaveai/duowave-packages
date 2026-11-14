@@ -1,0 +1,10 @@
+{
+  "stories": [
+    { "id": "watchman", "title": "The Watchman", "genre": "horror", "look": "glass", "pitch": "You were hired for a week to watch a mountain lodge. Triple pay. One rule: after midnight, never open the door." },
+    { "id": "compass", "title": "The Compass", "genre": "adventure", "look": "riso", "pitch": "In the storm you find a boat with no one aboard. Its compass points not north, but at you." },
+    { "id": "thirteen", "title": "Thirteen", "genre": "mystery", "look": "ink", "pitch": "The lift in your building stopped at the thirteenth floor. The building has twelve." },
+    { "id": "signal", "title": "The Signal", "genre": "sci-fi", "look": "pixel", "pitch": "You keep a station at the edge of the desert. Tonight the radio answered for the first time in a year. In your voice." },
+    { "id": "archive", "title": "The Archive", "genre": "detective", "look": "papercut", "pitch": "The city archive gave you a case closed forty years ago. On the last page is your signature." },
+    { "id": "operator", "title": "The Operator", "genre": "thriller", "look": "ascii", "pitch": "Night shift, alone at the console. A line on the screen: “don't turn off the lights, they only see in the dark”." }
+  ]
+}
