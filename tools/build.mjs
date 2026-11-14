@@ -309,19 +309,21 @@ function main() {
     // Превью: картинка и фразы первого персонажа — галерея покажет и проиграет пакет до установки. У кода превью нет.
     const preview = {};
     const first = r.code ? undefined : m.contributes?.characters?.[0];
-    const previewDir = join(out, 'previews', m.id);
+    // Папка превью — по версии: адрес картинки меняется с каждой версией, и ни кэш перед сайтом, ни копия в шлюзе
+    // (он скачивает превью один раз на версию) не оставят старую картинку у новой версии.
+    const previewDir = join(out, 'previews', m.id, m.version);
     if (first) {
       mkdirSync(previewDir, { recursive: true });
       const avatar = join(r.dir, 'assets', first.avatar);
       const type = imageInfo(readFileSync(avatar)).type;
       copyFileSync(avatar, join(previewDir, `image.${type}`));
-      preview.image = `previews/${m.id}/image.${type}`;
+      preview.image = `previews/${m.id}/${m.version}/image.${type}`;
     }
     preview.samples = [];
     if (first) {
       first.samples.forEach((sample, i) => {
         copyFileSync(join(r.dir, 'assets', sample.file), join(previewDir, `${i + 1}.opus`));
-        preview.samples.push(`previews/${m.id}/${i + 1}.opus`);
+        preview.samples.push(`previews/${m.id}/${m.version}/${i + 1}.opus`);
       });
     }
 

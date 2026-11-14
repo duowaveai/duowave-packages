@@ -186,8 +186,8 @@ dist/
   catalog.json                       лента (схема — schemas/catalog.schema.json)
   packages/<id>-<version>.vgp        tar.gz: в корне manifest.json и файлы пакета
   packages/<id>-<version>-<платформа>.vgp   у приложения со сборками — архив под каждую платформу
-  previews/<id>/image.webp           картинка для галереи
-  previews/<id>/1.opus …             фразы, если есть
+  previews/<id>/<version>/image.webp картинка для галереи (папка по версии: новая версия — новый адрес)
+  previews/<id>/<version>/1.opus …   фразы, если есть
   index.html, site.css, site.js      страница каталога
 ```
 
