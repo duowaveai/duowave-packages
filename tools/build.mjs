@@ -20,7 +20,10 @@
 // попадают полем `feeds`, его читает шлюз 0.4.0 и новее; старые его пропускают.
 // feed.config.json (docs/plans/custom-feeds.md шлюза): `hidden` — пакеты, которые шлюз 0.6.0+ скрывает (в ленте только
 // `{ id, hidden: true }`, без архива и превью; папку пакета можно оставить); `own` — лента для своих источников: без
-// отметки verified, голос `unknown` можно.
+// отметки verified, голос `unknown` можно; `recommended` — что мы рекомендуем (MagicPlace шлюза 0.9.0); `recommends` —
+// пакеты чужих лент, которые мы посмотрели и рекомендуем: адрес ленты, id и sha256 архива (поле `recommends` ленты).
+// Для MagicPlace (docs/plans/magicplace.md шлюза) у пакета ещё `faces` (лица приложения — из манифеста), `addedAt`
+// (первый коммит его manifest.json — нужна вся история git) и `downloads` (что он скачает сам — из манифеста).
 
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -184,6 +187,66 @@ function whatOf(r) {
   return r.runtime === 'node' ? 'приложение на Node' : r.runtime === 'process' ? 'приложение со сборками' : 'приложение';
 }
 
+/**
+ * Лица приложения для MagicPlace (docs/plans/magicplace.md шлюза): виджет стола — карточки или слот `desk.widgets`
+ * (у приложения, что объявляет виджет только в коде своего окна, как «Лента», — по `panel.js`); навык — фразы для
+ * колонки или инструменты «Мозга»; окно — свой раздел пульта; расписание. У персонажа и темы лиц нет.
+ */
+function facesOf(r) {
+  const m = r.manifest;
+  if (!r.code) return [];
+  const c = m.contributes && typeof m.contributes === 'object' ? m.contributes : {};
+  const panel = c.panel && typeof c.panel === 'object' ? c.panel : {};
+  const listed = (value) => Array.isArray(value) && value.length > 0;
+  const panelJs = r.files.find((file) => file.path === 'panel.js');
+  const widgetInCode = panelJs ? /["']desk\.widgets["']/.test(readFileSync(panelJs.abs, 'utf8')) : false;
+  const faces = [];
+  if (listed(panel.cards) || (Array.isArray(panel.slots) && panel.slots.includes('desk.widgets')) || widgetInCode) faces.push('widget');
+  if (listed(c.intents) || listed(c.tools)) faces.push('skill');
+  if (listed(panel.sections)) faces.push('window');
+  if (listed(c.schedules)) faces.push('schedule');
+  return faces;
+}
+
+/** Что пакет скачает сам, кроме архива (манифест `downloads`, проверен в check.mjs). */
+function downloadsOf(manifest) {
+  if (!Array.isArray(manifest.downloads)) return [];
+  return manifest.downloads.map((item) => ({ id: item.id, title: item.title.trim(), mb: item.mb, when: item.when }));
+}
+
+/** git в корне репозитория; не git или ошибка — исключение. */
+const git = (...args) => execFileSync('git', args, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+
+let historyKnown;
+/** Есть ли у сборки вся история git: в неглубокой копии (CI без fetch-depth: 0) первого коммита пакета не узнать. */
+function fullHistory(src) {
+  if (historyKnown !== undefined) return historyKnown;
+  historyKnown = false;
+  if (!inside(src, ROOT)) return historyKnown;
+  try {
+    historyKnown = git('rev-parse', '--is-shallow-repository') === 'false';
+  } catch {
+    historyKnown = false;
+  }
+  return historyKnown;
+}
+
+/**
+ * Когда пакет появился в каталоге: время первого коммита его manifest.json (с переездами папки). MagicPlace по нему
+ * собирает ряд «Новое». Неглубокая история или пакет ещё не закоммичен — null, поля в ленте не будет.
+ */
+function addedAtOf(src, id) {
+  if (!fullHistory(src)) return null;
+  try {
+    const path = relative(ROOT, join(src, id, 'manifest.json')).split(sep).join('/');
+    const times = git('log', '--follow', '--diff-filter=A', '--format=%ct', '--', path).split('\n').filter(Boolean);
+    const first = times[times.length - 1];
+    return first ? iso(Number(first) * 1000) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Модели, под которые у персонажей пакета есть снимки: известные — в их порядке, остальные — по алфавиту. */
 function needsOf(manifest) {
   const engines = new Set();
@@ -239,6 +302,8 @@ function main() {
   const ok = results.length === 0 || report(results);
   if (!ok) fail('есть ошибки — каталог не собран');
   const feeds = readFeeds();
+  const unknownRecommended = config.recommended.filter((id) => !results.some((r) => r.manifest.id === id));
+  if (unknownRecommended.length) fail(`feed.config.json: recommended — нет таких пакетов: ${unknownRecommended.join(', ')}`);
 
   // Код — только в подписанную ленту; в свою — никогда.
   const skipped = [];
@@ -256,7 +321,9 @@ function main() {
   if (args.check) {
     const extra = feeds.length ? `, ${plural(feeds.length, ['дополнительная лента', 'дополнительные ленты', 'дополнительных лент'])}` : '';
     const hidden = config.hidden.length ? `, скрыто: ${config.hidden.join(', ')}` : '';
-    console.log(`Проверка пройдена: ${plural(results.length, ['пакет', 'пакета', 'пакетов'])}${extra}${hidden}.`);
+    const recommended = config.recommended.length ? `, рекомендуем: ${config.recommended.join(', ')}` : '';
+    const pinned = config.recommends.length ? `, из чужих лент: ${config.recommends.map((pin) => pin.id).join(', ')}` : '';
+    console.log(`Проверка пройдена: ${plural(results.length, ['пакет', 'пакета', 'пакетов'])}${extra}${hidden}${recommended}${pinned}.`);
     tellSkipped();
     return;
   }
@@ -329,6 +396,9 @@ function main() {
 
     let minGateway = m.minGateway ?? DEFAULT_MIN_GATEWAY[m.kind];
     if (r.code && (!minGateway || compareSemver(minGateway, codeMinGateway(m)) < 0)) minGateway = codeMinGateway(m);
+    const faces = facesOf(r);
+    const addedAt = addedAtOf(args.src, m.id);
+    const downloads = downloadsOf(m);
 
     packages.push({
       id: m.id,
@@ -339,7 +409,7 @@ function main() {
       // Языки пакета и его название с описанием на них (манифест `languages`, `locales`): каталог шлюза показывает
       // пакет на языке человека, нет перевода — по-английски.
       ...(Array.isArray(m.languages) ? { languages: m.languages } : {}),
-      ...(m.locales && typeof m.locales === 'object' ? { locales: catalogLocales(m.locales) } : {}),
+      ...(m.locales && typeof m.locales === 'object' ? { locales: catalogLocales(m.locales, downloads) } : {}),
       api: m.api,
       runs: m.runs,
       minGateway,
@@ -361,11 +431,25 @@ function main() {
             permissions: r.permissions,
           }
         : {}),
+      // MagicPlace (шлюз 0.9.0; старые шлюзы поля пропускают): лица приложения, наша рекомендация, когда пакет
+      // появился в каталоге и что он скачает сам.
+      ...(faces.length ? { faces } : {}),
+      ...(config.recommended.includes(m.id) ? { recommended: true } : {}),
+      ...(addedAt ? { addedAt } : {}),
+      ...(downloads.length ? { downloads } : {}),
     });
   }
   for (const id of config.hidden) packages.push({ id, hidden: true });
 
-  const catalog = { format: FORMAT, updatedAt: updatedAt(args.src), packages, ...(feeds.length ? { feeds } : {}) };
+  // Пакеты чужих лент, которые мы посмотрели и рекомендуем (feed.config.json `recommends`): шлюз читает их только у
+  // главной ленты и метит пакет, только если хеш его архива тот же.
+  const catalog = {
+    format: FORMAT,
+    updatedAt: updatedAt(args.src),
+    packages,
+    ...(feeds.length ? { feeds } : {}),
+    ...(config.recommends.length ? { recommends: config.recommends } : {}),
+  };
   writeFileSync(join(out, 'catalog.json'), pretty(catalog) + '\n');
 
   const site = [];
@@ -398,20 +482,39 @@ function main() {
   if (coded) {
     console.log(`  с кодом: ${plural(coded, ['пакет', 'пакета', 'пакетов'])} — шлюзы поставят их, только если catalog.json подписан ключом каталога (catalog.json.minisig рядом)`);
   }
+  const faced = packages.filter((p) => p.faces?.length);
+  if (faced.length) console.log(`  лица приложений: ${faced.map((p) => `${p.id} — ${p.faces.join(', ')}`).join('; ')}`);
+  const recommended = packages.filter((p) => p.recommended).map((p) => p.id);
+  if (recommended.length) console.log(`  рекомендуем: ${recommended.join(', ')}`);
+  for (const pin of config.recommends) console.log(`  рекомендуем из чужой ленты: ${pin.id} (${pin.feed}), архив ${pin.sha256.slice(0, 12)}…`);
+  if (packages.some((p) => !p.hidden) && !packages.some((p) => p.addedAt)) {
+    console.log('  addedAt не записан: нет всей истории git (CI — fetch-depth: 0) — ряд «Новое» в MagicPlace будет пуст');
+  }
   console.log(`  catalog.json, сайт: ${site.length ? site.map((s) => s.split(sep).pop()).join(', ') : 'нет'}`);
   for (const feed of feeds) console.log(`  дополнительная лента: ${feed.url} — ${feed.title ?? feed.publisher}${feed.verified ? ', проверенная' : ''}`);
 }
 
 main();
 
-/** Из переводов манифеста — то, что нужно каталогу: название и описание на каждом языке. */
-function catalogLocales(locales) {
+/**
+ * Из переводов манифеста — то, что нужно каталогу: название и описание на каждом языке и названия загрузок
+ * (`downloads`) — MagicPlace ищет по всем языкам и называет загрузки на языке человека.
+ */
+function catalogLocales(locales, downloads = []) {
   const out = {};
+  const ids = new Set(downloads.map((item) => item.id));
   for (const [code, texts] of Object.entries(locales)) {
     if (!/^[a-z]{2,3}$/.test(code) || !texts || typeof texts !== 'object') continue;
     const entry = {};
     if (typeof texts.title === 'string' && texts.title.trim()) entry.title = texts.title.trim().slice(0, 80);
     if (typeof texts.description === 'string' && texts.description.trim()) entry.description = texts.description.trim().slice(0, 500);
+    if (texts.downloads && typeof texts.downloads === 'object') {
+      const named = {};
+      for (const [id, title] of Object.entries(texts.downloads)) {
+        if (ids.has(id) && typeof title === 'string' && title.trim()) named[id] = title.trim().slice(0, 80);
+      }
+      if (Object.keys(named).length) entry.downloads = named;
+    }
     if (Object.keys(entry).length) out[code] = entry;
   }
   return out;

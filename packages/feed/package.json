@@ -1,6 +1,6 @@
 {
   "name": "duowave-feed",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "type": "module",
   "description": "«Лента» для DuoWave: мини-сериалы, которые снимает ваш компьютер. Движок на Node, картинка — Remotion.",

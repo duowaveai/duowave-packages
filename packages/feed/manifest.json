@@ -4,7 +4,7 @@
   "runtime": "node",
   "node": { "entry": "engine/server.mjs" },
   "id": "feed",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "title": "Лента",
   "description": "Мини-сериалы, которые снимает для вас ваш компьютер: выбираете развилку — история продолжается. Голос, кто пишет и вкус ленты — на ваш выбор.",
   "languages": ["ru", "en"],
@@ -12,6 +12,7 @@
     "en": {
       "title": "Feed",
       "description": "Mini-series your computer shoots for you: choose at the fork and the story goes on. The voices, who writes and the feed’s taste are your choice.",
+      "downloads": { "render": "Remotion and a browser for drawing the episodes" },
       "settings": {
         "announce": { "title": "Say “Episode ready”" },
         "directorPerDay": { "title": "Director: episodes a day, at most" },
@@ -37,6 +38,7 @@
   "runs": ["pc"],
   "prefer": "home",
   "budget": { "memoryMb": 768, "filesMb": 4096, "tasks": 2 },
+  "downloads": [{ "id": "render", "title": "Remotion и браузер для рендера серий", "mb": 250, "when": "first-use" }],
   "permissions": ["call:system/brain", "call:system/voice", "call:system/voice/cloud", "call:system/hearing", "call:system/notify", "call:system/schedule", "call:system/memory", "call:system/publish"],
   "health": { "path": "/health", "intervalS": 15 },
   "settings": [

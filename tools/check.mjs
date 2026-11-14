@@ -105,10 +105,16 @@ export const VOICE_ORIGINS = ['synthetic', 'consent'];
  *   неизвестного происхождения (`voiceOrigin: unknown`) можно, отметки `verified` нет. В нашем каталоге и магазине — нет.
  * - `hidden` — id пакетов, которые шлюз скрывает (шлюз 0.6.0 и новее): в каталоге их нет, а поставленные из этой ленты
  *   пропадают с экрана у всех. В catalog.json такой пакет — только `{ "id", "hidden": true }`.
+ * - `recommended` — id пакетов, которые мы рекомендуем (MagicPlace шлюза 0.9.0: ряд «Рекомендуем» и шаг первого
+ *   запуска). Рекомендует каталог, а не автор пакета: в манифесте такого поля нет. В catalog.json — `recommended: true`.
+ * - `recommends` — пакеты чужих лент, которые мы посмотрели и рекомендуем: `[{ feed, id, sha256 }]` — адрес той ленты,
+ *   id пакета и sha256 его архива (из её catalog.json). Только в главной ленте каталога: шлюз читает его только там. Шлюз
+ *   метит пакет «рекомендуем» и «проверен», только если человек этот источник добавил и хеш тот же: поменяли архив —
+ *   пометки нет. В catalog.json — поле `recommends` верхнего уровня.
  */
 export function feedConfig() {
   const file = join(ROOT, 'feed.config.json');
-  if (!existsSync(file)) return { own: false, hidden: [] };
+  if (!existsSync(file)) return { own: false, hidden: [], recommended: [], recommends: [] };
   let value;
   try {
     value = JSON.parse(readFileSync(file, 'utf8'));
@@ -122,7 +128,50 @@ export function feedConfig() {
   if (!Array.isArray(hidden) || hidden.some((id) => !isPackageId(id))) {
     throw new Error('feed.config.json: hidden — список id пакетов');
   }
-  return { own, hidden: [...new Set(hidden)] };
+  const recommended = value.recommended ?? [];
+  if (!Array.isArray(recommended) || recommended.some((id) => !isPackageId(id))) {
+    throw new Error('feed.config.json: recommended — список id пакетов');
+  }
+  const both = recommended.filter((id) => hidden.includes(id));
+  if (both.length) throw new Error(`feed.config.json: ${both.join(', ')} — и в hidden, и в recommended`);
+  const recommends = pinnedRecommendations(value.recommends ?? [], own);
+  return { own, hidden: [...new Set(hidden)], recommended: [...new Set(recommended)], recommends };
+}
+
+/** Сколько пакетов чужих лент каталог может рекомендовать: столько же читает шлюз. */
+export const MAX_RECOMMENDS = 32;
+
+/**
+ * `recommends` из feed.config.json: `{ feed, id, sha256 }` — адрес чужой ленты (HTTPS; HTTP — только localhost и
+ * 127.0.0.1), id пакета и sha256 архива, который мы посмотрели. Своя лента (`own`) рекомендовать чужое не может.
+ */
+function pinnedRecommendations(list, own) {
+  if (!Array.isArray(list)) throw new Error('feed.config.json: recommends — список { feed, id, sha256 }');
+  if (list.length > 0 && own) throw new Error('feed.config.json: recommends — только в главной ленте каталога, не в своей');
+  if (list.length > MAX_RECOMMENDS) throw new Error(`feed.config.json: recommends — не больше ${MAX_RECOMMENDS}`);
+  const seen = new Set();
+  return list.map((item, i) => {
+    const at = `feed.config.json: recommends[${i}]`;
+    if (!isObject(item)) throw new Error(`${at}: объект { feed, id, sha256 }`);
+    let url;
+    try {
+      url = new URL(item.feed);
+    } catch {
+      throw new Error(`${at}.feed: адрес чужой ленты (…/catalog.json)`);
+    }
+    const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) throw new Error(`${at}.feed: только HTTPS`);
+    if (!isPackageId(item.id)) throw new Error(`${at}.id: id пакета`);
+    const sha256 = typeof item.sha256 === 'string' ? item.sha256.trim().toLowerCase() : '';
+    if (!/^[0-9a-f]{64}$/.test(sha256)) throw new Error(`${at}.sha256: 64 шестнадцатеричных знака — sha256 архива из её catalog.json`);
+    for (const key of Object.keys(item)) {
+      if (!['feed', 'id', 'sha256'].includes(key)) throw new Error(`${at}.${key}: такого поля нет (feed, id, sha256)`);
+    }
+    const key = `${url.href} ${item.id}`;
+    if (seen.has(key)) throw new Error(`${at}: этот пакет этой ленты уже есть`);
+    seen.add(key);
+    return { feed: url.href, id: item.id, sha256 };
+  });
 }
 
 /** Чей голос может быть у персонажа этой ленты: у своей ленты — и неизвестно чей (`unknown`). */
@@ -444,7 +493,7 @@ export function checkPackage(dir) {
     return result;
   }
 
-  for (const key of ['runtime', 'permissions', 'budget', 'settings']) {
+  for (const key of ['runtime', 'permissions', 'budget', 'settings', 'downloads']) {
     if (manifest[key] !== undefined && !(Array.isArray(manifest[key]) && manifest[key].length === 0)) {
       errors.push(`${key}: у пакета вида ${kind} нет кода — это поле плагина`);
     }
@@ -998,6 +1047,7 @@ function checkCode(m, kind, files, result, foreign) {
   // ---- настройки и вклады ----
   const settings = checkSettings(m.settings, errors);
   checkContributes(m.contributes, permissions, settings, errors);
+  checkDownloads(m, errors);
 
   // MIDI-клавиатура подключается к компьютеру: приложение, что её слушает, работает там.
   const hearsMidi = permissions.some((p) => p.level && LEVELS.indexOf(p.level) >= LEVELS.indexOf('listen') && patternMatches(p.pattern, 'device/midi'));
@@ -1034,6 +1084,56 @@ function checkCode(m, kind, files, result, foreign) {
   }
 
   checkDependencies(files, runtime, result);
+}
+
+/** Сколько разных загрузок пакет может назвать. */
+const MAX_DOWNLOADS = 8;
+/** Когда пакет скачивает своё: при установке или при первом деле. */
+const DOWNLOAD_WHEN = ['install', 'first-use'];
+
+/**
+ * `downloads` — что приложение скачает само, кроме архива (MagicPlace называет это словами до установки):
+ * `[{ id, title, mb, when }]`, переводы названий — `locales.<код>.downloads.<id>`. Шлюз поле не проверяет и не читает
+ * из манифеста — его читает лента; ошибка здесь — только чтобы MagicPlace не показал чепуху.
+ */
+function checkDownloads(m, errors) {
+  if (m.downloads === undefined) return;
+  if (!Array.isArray(m.downloads)) {
+    errors.push('downloads: список { id, title, mb, when }');
+    return;
+  }
+  if (m.downloads.length > MAX_DOWNLOADS) errors.push(`downloads: не больше ${MAX_DOWNLOADS}`);
+  const ids = new Set();
+  m.downloads.forEach((item, i) => {
+    const at = `downloads[${i}]`;
+    if (!isObject(item)) {
+      errors.push(`${at}: объект { id, title, mb, when }`);
+      return;
+    }
+    if (typeof item.id !== 'string' || !/^[a-z][a-z0-9-]{0,31}$/.test(item.id)) errors.push(`${at}.id: строчные латинские буквы, цифры и «-»`);
+    else if (ids.has(item.id)) errors.push(`${at}.id: «${item.id}» дважды`);
+    else ids.add(item.id);
+    const title = trimmed(item.title);
+    if (!title) errors.push(`${at}.title: что скачает, словами`);
+    else if (chars(title) > 80) errors.push(`${at}.title: длиннее 80 знаков`);
+    if (!Number.isInteger(item.mb) || item.mb < 1 || item.mb > 100000) errors.push(`${at}.mb: сколько примерно, целое число МБ`);
+    if (!DOWNLOAD_WHEN.includes(item.when)) errors.push(`${at}.when: ${DOWNLOAD_WHEN.join(' или ')}`);
+    for (const key of Object.keys(item)) {
+      if (!['id', 'title', 'mb', 'when'].includes(key)) errors.push(`${at}.${key}: такого поля нет (id, title, mb, when)`);
+    }
+  });
+  for (const [code, texts] of Object.entries(isObject(m.locales) ? m.locales : {})) {
+    const named = isObject(texts) ? texts.downloads : undefined;
+    if (named === undefined) continue;
+    if (!isObject(named)) {
+      errors.push(`locales.${code}.downloads: объект «id загрузки → название»`);
+      continue;
+    }
+    for (const [id, title] of Object.entries(named)) {
+      if (!ids.has(id)) errors.push(`locales.${code}.downloads.${id}: такой загрузки нет в downloads`);
+      else if (!trimmed(title) || chars(title) > 80) errors.push(`locales.${code}.downloads.${id}: название до 80 знаков`);
+    }
+  }
 }
 
 /** `contributes` пакета с кодом (`contributes()` и `bus_spec()` шлюза). */

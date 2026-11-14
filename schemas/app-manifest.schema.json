@@ -93,6 +93,12 @@
       "description": "Права Host API 2 — только двух видов: куда в интернете (net:<хост>) и до чего в доме на шине (see:/listen:/call:/edit:<адрес>). Слова Host API 1 (voice.say, kv, smart_home…) — ошибка."
     },
     "settings": { "type": "array", "maxItems": 30, "items": { "$ref": "#/$defs/setting" } },
+    "downloads": {
+      "type": "array",
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/download" },
+      "description": "Необязательно: что приложение скачает само, кроме своего архива, — зависимости, браузер для рендера, модели. MagicPlace называет это словами до установки («При первой съёмке — Remotion и браузер для рендера, около 250 МБ»). Node шлюза сюда не пишется: шлюз сам знает, есть ли он у него. Переводы названий — locales.<код>.downloads.<id>."
+    },
     "contributes": { "$ref": "#/$defs/contributes" }
   },
   "allOf": [
@@ -127,6 +133,17 @@
       "type": "string",
       "description": "Адрес на шине (вид/путь: system/voice, app/notes, files/home/Документы), он же с /* (и всё под ним) или * — всё.",
       "pattern": "^(?:\\*|[a-z][a-z0-9-]{0,31}(?:/(?!\\.{1,2}(?:/|$))[^/*\\\\\\u0000-\\u001f]{1,128})*(?:/\\*)?)$"
+    },
+    "download": {
+      "type": "object",
+      "required": ["id", "title", "mb", "when"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,31}$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 80, "description": "Что скачает, словами, на языке манифеста." },
+        "mb": { "type": "integer", "minimum": 1, "maximum": 100000, "description": "Сколько примерно, МБ." },
+        "when": { "enum": ["install", "first-use"], "description": "При установке или при первом деле (первой съёмке)." }
+      }
     },
     "target": {
       "type": "object",

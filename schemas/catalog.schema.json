@@ -14,6 +14,12 @@
       "maxItems": 4,
       "items": { "$ref": "#/$defs/feed" },
       "description": "Дополнительные ленты (шлюз 0.4.0 и новее; старые поле пропускают). Шлюз читает их следом за этой; архивы и превью каждой — с её собственного адреса; пакет с id, который уже есть раньше, не берётся; код из дополнительных лент не ставится; ссылки на ленты внутри дополнительной шлюз пропускает."
+    },
+    "recommends": {
+      "type": "array",
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/pin" },
+      "description": "Пакеты чужих лент, которые мы посмотрели и рекомендуем (MagicPlace; feed.config.json recommends). Шлюз читает поле только у главной ленты и метит пакет той ленты «рекомендуем» и «проверен», если человек её добавил и sha256 архива тот же; другой архив — пометки нет. Код из чужих лент всё равно не ставится. Старые шлюзы поле пропускают."
     }
   },
   "$defs": {
@@ -51,6 +57,29 @@
           "type": "boolean",
           "description": "true — без этого пакет работает (персонаж говорит запасным голосом)."
         }
+      }
+    },
+    "pin": {
+      "type": "object",
+      "required": ["feed", "id", "sha256"],
+      "additionalProperties": false,
+      "description": "Пакет чужой ленты, который мы посмотрели: её адрес, id пакета и sha256 его архива.",
+      "properties": {
+        "feed": { "type": "string", "format": "uri", "description": "Адрес чужой ленты (…/catalog.json): HTTPS; HTTP — только localhost и 127.0.0.1." },
+        "id": { "type": "string", "pattern": "^[a-z](?:[a-z0-9-]{0,30}[a-z0-9])?$" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "sha256 архива из её catalog.json — тот, что мы посмотрели." }
+      }
+    },
+    "download": {
+      "type": "object",
+      "required": ["id", "title", "mb", "when"],
+      "additionalProperties": false,
+      "description": "Что пакет скачает сам, кроме своего архива (манифест downloads): MagicPlace называет это словами до установки.",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,31}$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 80, "description": "Что скачает, словами: «Remotion и браузер для рендера»." },
+        "mb": { "type": "integer", "minimum": 1, "maximum": 100000, "description": "Сколько примерно, МБ." },
+        "when": { "enum": ["install", "first-use"], "description": "Когда: при установке или при первом деле (первой съёмке)." }
       }
     },
     "publisher": {
@@ -92,12 +121,16 @@
         },
         "locales": {
           "type": "object",
-          "description": "Название и описание на других языках: по коду языка {title, description}. Шлюз показывает пакет на языке человека, нет перевода — по-английски.",
+          "description": "Название и описание на других языках: по коду языка {title, description}, и названия загрузок — {downloads: {id: название}}. Шлюз показывает пакет на языке человека, нет перевода — по-английски; MagicPlace ищет по всем языкам.",
           "propertyNames": { "pattern": "^[a-z]{2,3}$" },
           "additionalProperties": {
             "type": "object",
             "additionalProperties": false,
-            "properties": { "title": { "type": "string", "maxLength": 80 }, "description": { "type": "string", "maxLength": 500 } }
+            "properties": {
+              "title": { "type": "string", "maxLength": 80 },
+              "description": { "type": "string", "maxLength": 500 },
+              "downloads": { "type": "object", "additionalProperties": { "type": "string", "maxLength": 80 } }
+            }
           }
         },
         "api": { "type": "string", "minLength": 1 },
@@ -157,6 +190,27 @@
           "uniqueItems": true,
           "items": { "type": "string", "pattern": "^(?:net|see|listen|call|edit):" },
           "description": "Пакет с кодом: права из манифеста — net:<хост> и связи шины see:/listen:/call:/edit:<адрес>. Страница каталога показывает их до установки."
+        },
+        "faces": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["widget", "skill", "window", "schedule"] },
+          "description": "Лица приложения (MagicPlace, шлюз 0.9.0 и новее; старые поле пропускают): widget — виджет стола (contributes.panel.cards, slots desk.widgets), skill — фразы для колонки или инструменты «Мозга» (intents, tools), window — своё окно (contributes.panel.sections), schedule — расписание. Сборка выводит их из манифеста; у персонажа и темы поля нет."
+        },
+        "recommended": {
+          "type": "boolean",
+          "description": "Рекомендуем мы (feed.config.json recommended): MagicPlace показывает пакет в ряду «Рекомендуем» и в шаге первого запуска, если он встанет на этом шлюзе. Из своих источников шлюз пометку не берёт."
+        },
+        "addedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Когда пакет появился в каталоге: время первого коммита его manifest.json. MagicPlace показывает появившиеся за 30 дней в ряду «Новое». Нет истории git — поля нет."
+        },
+        "downloads": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/download" },
+          "description": "Что пакет скачает сам, кроме архива (манифест downloads). Node шлюза здесь не пишется: шлюз сам знает, есть ли он у него."
         }
       }
     },
