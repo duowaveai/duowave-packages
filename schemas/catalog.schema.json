@@ -61,9 +61,9 @@
     },
     "pin": {
       "type": "object",
-      "required": ["feed", "id", "sha256"],
+      "required": ["id", "sha256"],
       "additionalProperties": false,
-      "description": "Пакет чужой ленты, который мы посмотрели: её адрес, id пакета и sha256 его архива.",
+      "description": "Пакет чужой ленты, который мы посмотрели: её адрес, id пакета и sha256 его архива. Без адреса (feed нет; шлюз новее 0.11.0, старые такую строку пропускают) — один архив, в какой бы добавленной ленте он ни был: так рекомендуют пакет ленты, адрес которой не раскрываем.",
       "properties": {
         "feed": { "type": "string", "format": "uri", "description": "Адрес чужой ленты (…/catalog.json): HTTPS; HTTP — только localhost и 127.0.0.1." },
         "id": { "type": "string", "pattern": "^[a-z](?:[a-z0-9-]{0,30}[a-z0-9])?$" },

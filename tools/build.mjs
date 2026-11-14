@@ -21,7 +21,7 @@
 // feed.config.json (docs/plans/custom-feeds.md шлюза): `hidden` — пакеты, которые шлюз 0.6.0+ скрывает (в ленте только
 // `{ id, hidden: true }`, без архива и превью; папку пакета можно оставить); `own` — лента для своих источников: без
 // отметки verified, голос `unknown` можно; `recommended` — что мы рекомендуем (MagicPlace шлюза 0.9.0); `recommends` —
-// пакеты чужих лент, которые мы посмотрели и рекомендуем: адрес ленты, id и sha256 архива (поле `recommends` ленты).
+// пакеты чужих лент, которые мы посмотрели и рекомендуем: адрес ленты (или без него), id и sha256 архива (поле `recommends` ленты).
 // Для MagicPlace (docs/plans/magicplace.md шлюза) у пакета ещё `faces` (лица приложения — из манифеста), `addedAt`
 // (первый коммит его manifest.json — нужна вся история git) и `downloads` (что он скачает сам — из манифеста).
 
@@ -486,7 +486,9 @@ function main() {
   if (faced.length) console.log(`  лица приложений: ${faced.map((p) => `${p.id} — ${p.faces.join(', ')}`).join('; ')}`);
   const recommended = packages.filter((p) => p.recommended).map((p) => p.id);
   if (recommended.length) console.log(`  рекомендуем: ${recommended.join(', ')}`);
-  for (const pin of config.recommends) console.log(`  рекомендуем из чужой ленты: ${pin.id} (${pin.feed}), архив ${pin.sha256.slice(0, 12)}…`);
+  for (const pin of config.recommends) {
+    console.log(`  рекомендуем из чужой ленты: ${pin.id} (${pin.feed ?? 'без адреса ленты'}), архив ${pin.sha256.slice(0, 12)}…`);
+  }
   if (packages.some((p) => !p.hidden) && !packages.some((p) => p.addedAt)) {
     console.log('  addedAt не записан: нет всей истории git (CI — fetch-depth: 0) — ряд «Новое» в MagicPlace будет пуст');
   }

@@ -110,7 +110,8 @@ export const VOICE_ORIGINS = ['synthetic', 'consent'];
  * - `recommends` — пакеты чужих лент, которые мы посмотрели и рекомендуем: `[{ feed, id, sha256 }]` — адрес той ленты,
  *   id пакета и sha256 его архива (из её catalog.json). Только в главной ленте каталога: шлюз читает его только там. Шлюз
  *   метит пакет «рекомендуем» и «проверен», только если человек этот источник добавил и хеш тот же: поменяли архив —
- *   пометки нет. В catalog.json — поле `recommends` верхнего уровня.
+ *   пометки нет. В catalog.json — поле `recommends` верхнего уровня. Без `feed` (шлюз новее 0.11.0) — один архив, в
+ *   какой бы добавленной ленте он ни был: адрес ленты, которую не раскрываем (демо), в открытый каталог не попадает.
  */
 export function feedConfig() {
   const file = join(ROOT, 'feed.config.json');
@@ -143,7 +144,8 @@ export const MAX_RECOMMENDS = 32;
 
 /**
  * `recommends` из feed.config.json: `{ feed, id, sha256 }` — адрес чужой ленты (HTTPS; HTTP — только localhost и
- * 127.0.0.1), id пакета и sha256 архива, который мы посмотрели. Своя лента (`own`) рекомендовать чужое не может.
+ * 127.0.0.1), id пакета и sha256 архива, который мы посмотрели; `feed` можно не писать — тогда это один архив, где бы он
+ * ни был. Своя лента (`own`) рекомендовать чужое не может.
  */
 function pinnedRecommendations(list, own) {
   if (!Array.isArray(list)) throw new Error('feed.config.json: recommends — список { feed, id, sha256 }');
@@ -153,24 +155,27 @@ function pinnedRecommendations(list, own) {
   return list.map((item, i) => {
     const at = `feed.config.json: recommends[${i}]`;
     if (!isObject(item)) throw new Error(`${at}: объект { feed, id, sha256 }`);
-    let url;
-    try {
-      url = new URL(item.feed);
-    } catch {
-      throw new Error(`${at}.feed: адрес чужой ленты (…/catalog.json)`);
+    // Без адреса — архив сам по себе: ленту, которую не раскрываем, открытый каталог не называет.
+    let url = null;
+    if (item.feed !== undefined) {
+      try {
+        url = new URL(item.feed);
+      } catch {
+        throw new Error(`${at}.feed: адрес чужой ленты (…/catalog.json) или ничего`);
+      }
+      const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+      if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) throw new Error(`${at}.feed: только HTTPS`);
     }
-    const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
-    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) throw new Error(`${at}.feed: только HTTPS`);
     if (!isPackageId(item.id)) throw new Error(`${at}.id: id пакета`);
     const sha256 = typeof item.sha256 === 'string' ? item.sha256.trim().toLowerCase() : '';
     if (!/^[0-9a-f]{64}$/.test(sha256)) throw new Error(`${at}.sha256: 64 шестнадцатеричных знака — sha256 архива из её catalog.json`);
     for (const key of Object.keys(item)) {
       if (!['feed', 'id', 'sha256'].includes(key)) throw new Error(`${at}.${key}: такого поля нет (feed, id, sha256)`);
     }
-    const key = `${url.href} ${item.id}`;
-    if (seen.has(key)) throw new Error(`${at}: этот пакет этой ленты уже есть`);
+    const key = `${url?.href ?? '—'} ${item.id}`;
+    if (seen.has(key)) throw new Error(`${at}: ${url ? 'этот пакет этой ленты' : 'этот пакет без адреса'} уже есть`);
     seen.add(key);
-    return { feed: url.href, id: item.id, sha256 };
+    return url ? { feed: url.href, id: item.id, sha256 } : { id: item.id, sha256 };
   });
 }
 

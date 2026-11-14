@@ -1,3 +1,8 @@
 {
-  "recommended": ["feed"]
+  "recommended": ["feed"],
+  "recommends": [
+    { "id": "jarvis-demo", "sha256": "d3b1c7cbf7bc453132c1d6191caa0b56eba12e22723f91058ce59f0dcb30e1cf" },
+    { "id": "glados-demo", "sha256": "dc7b5d45a29b27e6bb29f64dea979941c26278d75b37ddfe3d3e2ab30b9621b0" },
+    { "id": "rick-demo", "sha256": "d38a05b458b7caa22d89c75edc9893ac3ec94e7b13e674da0859ce9acfa8e601" }
+  ]
 }
