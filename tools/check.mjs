@@ -897,6 +897,12 @@ function checkSettings(value, errors) {
         continue;
       }
     }
+    // Приложение работает и без неё (ключ для добавочного, канал публикации): пульт пишет «можно не заполнять», и
+    // такой ключ шлюз не ждёт. Шлюзы постарше поле пропускают.
+    if (item.optional !== undefined && typeof item.optional !== 'boolean') {
+      errors.push(`settings.${key}: optional — true или false`);
+      continue;
+    }
     if (item.default !== undefined && !settingAccepts(type, options, item.default)) {
       errors.push(`settings.${key}: default не подходит к type`);
       continue;

@@ -59,8 +59,11 @@ export function tools() {
     }
     const bundled = remotions();
     if (bundled) {
-        // Его библиотеки лежат рядом: на Linux их ищут по LD_LIBRARY_PATH, на macOS — по @rpath.
-        const env = process.platform === 'linux' ? { LD_LIBRARY_PATH: bundled.dir } : {};
+        // Его библиотеки лежат рядом, и называет он их голым именем (libavdevice.dylib): на Linux их ищут по
+        // LD_LIBRARY_PATH, на macOS — по DYLD_LIBRARY_PATH (так запускает его и сам Remotion). Без этого на Mac —
+        // «Library not loaded: libavdevice.dylib», когда своего ffmpeg в PATH нет: приложение DuoWave запущено не из
+        // терминала, и PATH у него без Homebrew.
+        const env = { linux: { LD_LIBRARY_PATH: bundled.dir }, darwin: { DYLD_LIBRARY_PATH: bundled.dir } }[process.platform] ?? {};
         found = { ffmpeg: bundled.ffmpeg, ffprobe: bundled.ffprobe, full: false, env };
         return found;
     }

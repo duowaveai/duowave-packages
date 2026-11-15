@@ -4,7 +4,7 @@
   "runtime": "node",
   "node": { "entry": "engine/server.mjs" },
   "id": "feed",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "title": "Лента",
   "description": "Мини-сериалы, которые снимает для вас ваш компьютер: выбираете развилку — история продолжается. Голос, кто пишет и вкус ленты — на ваш выбор.",
   "languages": ["ru", "en"],
@@ -44,9 +44,9 @@
   "settings": [
     { "key": "announce", "type": "boolean", "title": "Говорить «Серия готова»", "default": true },
     { "key": "directorPerDay", "type": "number", "title": "Режиссёр: серий в день, не больше", "default": 5 },
-    { "key": "telegramChannel", "type": "string", "title": "Telegram: канал для публикации (@имя; бот шлюза — его админ)" },
-    { "key": "renderServer", "type": "string", "title": "Сервер рендера (адрес; пусто — рисует этот компьютер)" },
-    { "key": "renderKey", "type": "string", "title": "Ключ сервера рендера", "secret": true }
+    { "key": "telegramChannel", "type": "string", "title": "Telegram: канал для публикации (@имя; бот шлюза — его админ)", "optional": true },
+    { "key": "renderServer", "type": "string", "title": "Сервер рендера (адрес; пусто — рисует этот компьютер)", "optional": true },
+    { "key": "renderKey", "type": "string", "title": "Ключ сервера рендера", "secret": true, "optional": true }
   ],
   "contributes": {
     "schedules": [
