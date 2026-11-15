@@ -324,7 +324,10 @@
   function render(catalog, base) {
     const sections = $('sections');
     sections.replaceChildren();
-    const packages = Array.isArray(catalog.packages) ? catalog.packages.filter((p) => p && typeof p.id === 'string' && typeof p.title === 'string') : [];
+    // Скрытые лентой (`unlisted`) страница не показывает: их видно только со скрытой возможностью разработчика в пульте.
+    const packages = Array.isArray(catalog.packages)
+      ? catalog.packages.filter((p) => p && typeof p.id === 'string' && typeof p.title === 'string' && p.unlisted !== true)
+      : [];
     const missing = [];
     for (const kind of KINDS) {
       const list = packages

@@ -302,6 +302,8 @@ function main() {
   const ok = results.length === 0 || report(results);
   if (!ok) fail('есть ошибки — каталог не собран');
   const feeds = readFeeds();
+  const unknownUnlisted = config.unlisted.filter((id) => !results.some((r) => r.manifest.id === id));
+  if (unknownUnlisted.length) fail(`feed.config.json: unlisted — нет таких пакетов: ${unknownUnlisted.join(', ')}`);
   const unknownRecommended = config.recommended.filter((id) => !results.some((r) => r.manifest.id === id));
   if (unknownRecommended.length) fail(`feed.config.json: recommended — нет таких пакетов: ${unknownRecommended.join(', ')}`);
 
@@ -321,9 +323,10 @@ function main() {
   if (args.check) {
     const extra = feeds.length ? `, ${plural(feeds.length, ['дополнительная лента', 'дополнительные ленты', 'дополнительных лент'])}` : '';
     const hidden = config.hidden.length ? `, скрыто: ${config.hidden.join(', ')}` : '';
+    const unlisted = config.unlisted.length ? `, скрыты от списков: ${config.unlisted.join(', ')}` : '';
     const recommended = config.recommended.length ? `, рекомендуем: ${config.recommended.join(', ')}` : '';
     const pinned = config.recommends.length ? `, из чужих лент: ${config.recommends.map((pin) => pin.id).join(', ')}` : '';
-    console.log(`Проверка пройдена: ${plural(results.length, ['пакет', 'пакета', 'пакетов'])}${extra}${hidden}${recommended}${pinned}.`);
+    console.log(`Проверка пройдена: ${plural(results.length, ['пакет', 'пакета', 'пакетов'])}${extra}${hidden}${unlisted}${recommended}${pinned}.`);
     tellSkipped();
     return;
   }
@@ -435,6 +438,8 @@ function main() {
       // появился в каталоге и что он скачает сам.
       ...(faces.length ? { faces } : {}),
       ...(config.recommended.includes(m.id) ? { recommended: true } : {}),
+      // Скрытый лентой (шлюз новее 0.11.1; старые поле пропускают): виден со скрытой возможностью разработчика.
+      ...(config.unlisted.includes(m.id) ? { unlisted: true } : {}),
       ...(addedAt ? { addedAt } : {}),
       ...(downloads.length ? { downloads } : {}),
     });

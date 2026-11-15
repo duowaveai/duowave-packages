@@ -105,6 +105,10 @@ export const VOICE_ORIGINS = ['synthetic', 'consent'];
  *   неизвестного происхождения (`voiceOrigin: unknown`) можно, отметки `verified` нет. В нашем каталоге и магазине — нет.
  * - `hidden` — id пакетов, которые шлюз скрывает (шлюз 0.6.0 и новее): в каталоге их нет, а поставленные из этой ленты
  *   пропадают с экрана у всех. В catalog.json такой пакет — только `{ "id", "hidden": true }`.
+ * - `unlisted` — id пакетов, которые лента держит скрытыми (шлюз новее 0.11.1): пакет целиком в ленте и ставится, но
+ *   в MagicPlace, каталоге персонажей и голосом его не видно, пока администратор не включил скрытую возможность
+ *   разработчика «Показывать скрытые пакеты»; поставленный остаётся на виду. В catalog.json — `unlisted: true`. Старые
+ *   шлюзы поле пропускают и показывают пакет как обычно. Не `hidden`: тот убирает пакет у всех.
  * - `recommended` — id пакетов, которые мы рекомендуем (MagicPlace шлюза 0.9.0: ряд «Рекомендуем» и шаг первого
  *   запуска). Рекомендует каталог, а не автор пакета: в манифесте такого поля нет. В catalog.json — `recommended: true`.
  * - `recommends` — пакеты чужих лент, которые мы посмотрели и рекомендуем: `[{ feed, id, sha256 }]` — адрес той ленты,
@@ -115,7 +119,7 @@ export const VOICE_ORIGINS = ['synthetic', 'consent'];
  */
 export function feedConfig() {
   const file = join(ROOT, 'feed.config.json');
-  if (!existsSync(file)) return { own: false, hidden: [], recommended: [], recommends: [] };
+  if (!existsSync(file)) return { own: false, hidden: [], unlisted: [], recommended: [], recommends: [] };
   let value;
   try {
     value = JSON.parse(readFileSync(file, 'utf8'));
@@ -135,8 +139,16 @@ export function feedConfig() {
   }
   const both = recommended.filter((id) => hidden.includes(id));
   if (both.length) throw new Error(`feed.config.json: ${both.join(', ')} — и в hidden, и в recommended`);
+  const unlisted = value.unlisted ?? [];
+  if (!Array.isArray(unlisted) || unlisted.some((id) => !isPackageId(id))) {
+    throw new Error('feed.config.json: unlisted — список id пакетов');
+  }
+  for (const [list, name] of [[hidden, 'hidden'], [recommended, 'recommended']]) {
+    const twice = unlisted.filter((id) => list.includes(id));
+    if (twice.length) throw new Error(`feed.config.json: ${twice.join(', ')} — и в unlisted, и в ${name}`);
+  }
   const recommends = pinnedRecommendations(value.recommends ?? [], own);
-  return { own, hidden: [...new Set(hidden)], recommended: [...new Set(recommended)], recommends };
+  return { own, hidden: [...new Set(hidden)], unlisted: [...new Set(unlisted)], recommended: [...new Set(recommended)], recommends };
 }
 
 /** Сколько пакетов чужих лент каталог может рекомендовать: столько же читает шлюз. */
