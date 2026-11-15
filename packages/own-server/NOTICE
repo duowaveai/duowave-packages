@@ -1,0 +1,13 @@
+DuoWave VPN (duowave-own-server)
+Copyright DuoWave contributors. Licensed under the Apache License, Version 2.0 (LICENSE).
+
+The program embeds shoes (https://github.com/cfal/shoes, commit d1742b93e0d3541aae75005a610d2c702ead7144),
+Copyright (c) 2021-2023 Alex Lau, under the MIT License (docs/licenses/shoes-MIT.txt), and through it
+GotaTun 0.10.2 (Mullvad VPN AB, incorporating work of Cloudflare, Inc.), whose source files are covered by the
+Mozilla Public License 2.0 (docs/licenses/MPL-2.0.txt, docs/licenses/gotatun-CLOUDFLARE.txt); GotaTun is used
+unmodified, its source is at https://github.com/mullvad/gotatun/tree/c06582e41022bcecbf33751631fd5a63d5794dc5.
+
+The statically linked musl C library and the Rust standard library notices are in docs/licenses/. The license texts
+and attributions of every other dependency are in docs/licenses/dependencies.txt; shoes' own dependency notices
+(Go math/rand constants, anytls-rs and others) are reproduced as they are in THIRD_PARTY_NOTICES.md.
+The corresponding source and how to rebuild the program are in SOURCE.md.

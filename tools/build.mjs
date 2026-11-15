@@ -119,6 +119,55 @@ function readFeeds() {
   });
 }
 
+/**
+ * «Где что работает» (reach.json в корне; docs/plans/own-server.md шлюза): `services` — поставщики «Мозга», слуха и
+ * голоса, MCP-инструменты, Алиса по id — уходят файлом рядом с catalog.json (подписывается тем же ключом:
+ * scripts/sign-catalog.sh шлюза, dist/reach.json); `apps` — по id пакета — ложатся в запись пакета ленты полем
+ * `reach`. Данные без слов: `blocked` (откуда не работает) или `only` (откуда только), коды стран ISO 3166-1.
+ */
+/** `reach` записи пакета: из reach.json apps, без hosts (адреса приложения шлюз знает из его net:). */
+function appReach(reach, id) {
+  const entry = reach?.apps?.[id];
+  if (!entry) return null;
+  const { hosts: _hosts, ...rest } = entry;
+  return rest;
+}
+
+function readReach(ids) {
+  const file = join(ROOT, 'reach.json');
+  if (!existsSync(file)) return null;
+  let data;
+  try {
+    data = JSON.parse(readFileSync(file, 'utf8'));
+  } catch (error) {
+    fail(`reach.json: не JSON — ${error.message}`);
+  }
+  if (data.format !== 1) fail('reach.json: нужен format 1');
+  if (!data.updatedAt || !/^\d{4}-\d{2}-\d{2}/.test(data.updatedAt)) fail('reach.json: нужен updatedAt (ГГГГ-ММ-ДД)');
+  const country = /^[A-Z]{2}$/;
+  const check = (at, entry) => {
+    for (const key of Object.keys(entry)) {
+      if (!['blocked', 'only', 'hosts'].includes(key)) fail(`${at}: лишнее поле ${key}`);
+    }
+    for (const key of ['blocked', 'only']) {
+      if (entry[key] === undefined) continue;
+      if (!Array.isArray(entry[key]) || !entry[key].every((code) => country.test(code))) {
+        fail(`${at}.${key}: список кодов стран, например ["RU", "CN"]`);
+      }
+    }
+    if (entry.blocked && entry.only) fail(`${at}: либо blocked, либо only`);
+    if (entry.hosts !== undefined && (!Array.isArray(entry.hosts) || !entry.hosts.every((host) => typeof host === 'string' && /^[a-z0-9.*-]+$/.test(host)))) {
+      fail(`${at}.hosts: список имён хостов строчными`);
+    }
+  };
+  for (const [id, entry] of Object.entries(data.services ?? {})) check(`reach.json: services.${id}`, entry);
+  for (const [id, entry] of Object.entries(data.apps ?? {})) {
+    check(`reach.json: apps.${id}`, entry);
+    if (!ids.includes(id)) fail(`reach.json: apps.${id} — нет такого пакета`);
+  }
+  return data;
+}
+
 function fail(message) {
   console.error(`✗ ${message}`);
   process.exit(1);
@@ -302,6 +351,7 @@ function main() {
   const ok = results.length === 0 || report(results);
   if (!ok) fail('есть ошибки — каталог не собран');
   const feeds = readFeeds();
+  const reach = readReach(results.map((r) => r.manifest.id));
   const unknownUnlisted = config.unlisted.filter((id) => !results.some((r) => r.manifest.id === id));
   if (unknownUnlisted.length) fail(`feed.config.json: unlisted — нет таких пакетов: ${unknownUnlisted.join(', ')}`);
   const unknownRecommended = config.recommended.filter((id) => !results.some((r) => r.manifest.id === id));
@@ -376,7 +426,8 @@ function main() {
       }
     } else common = put(`${m.id}-${m.version}.vgp`, archiveOf(m.id, r.files));
 
-    // Превью: картинка и фразы первого персонажа — галерея покажет и проиграет пакет до установки. У кода превью нет.
+    // Превью: картинка и фразы первого персонажа — галерея покажет и проиграет пакет до установки. У приложения и плагина
+    // — только картинка, их значок (`icon`): MagicPlace и ярлык на столе.
     const preview = {};
     const first = r.code ? undefined : m.contributes?.characters?.[0];
     // Папка превью — по версии: адрес картинки меняется с каждой версией, и ни кэш перед сайтом, ни копия в шлюзе
@@ -387,6 +438,12 @@ function main() {
       const avatar = join(r.dir, 'assets', first.avatar);
       const type = imageInfo(readFileSync(avatar)).type;
       copyFileSync(avatar, join(previewDir, `image.${type}`));
+      preview.image = `previews/${m.id}/${m.version}/image.${type}`;
+    } else if (r.icon) {
+      mkdirSync(previewDir, { recursive: true });
+      const icon = join(r.dir, r.icon);
+      const type = imageInfo(readFileSync(icon)).type;
+      copyFileSync(icon, join(previewDir, `image.${type}`));
       preview.image = `previews/${m.id}/${m.version}/image.${type}`;
     }
     preview.samples = [];
@@ -442,6 +499,8 @@ function main() {
       ...(config.unlisted.includes(m.id) ? { unlisted: true } : {}),
       ...(addedAt ? { addedAt } : {}),
       ...(downloads.length ? { downloads } : {}),
+      // Откуда до приложения достучаться (reach.json apps; шлюз с «Выходом в интернет», старые поле пропускают).
+      ...(appReach(reach, m.id) ? { reach: appReach(reach, m.id) } : {}),
     });
   }
   for (const id of config.hidden) packages.push({ id, hidden: true });
@@ -456,6 +515,10 @@ function main() {
     ...(config.recommends.length ? { recommends: config.recommends } : {}),
   };
   writeFileSync(join(out, 'catalog.json'), pretty(catalog) + '\n');
+  if (reach) {
+    const { apps: _apps, ...shared } = reach;
+    writeFileSync(join(out, 'reach.json'), pretty(shared) + '\n');
+  }
 
   const site = [];
   if (existsSync(join(ROOT, 'site'))) copyTree(join(ROOT, 'site'), out, site);

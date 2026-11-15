@@ -82,6 +82,8 @@ export function codeMinGateway(manifest) {
   // Приложения на Node шлюз запускает с 0.9.0 (в 0.7–0.8 их ещё не было): ниже лента их не покажет.
   return manifest?.kind === 'app' && runtimeOf(manifest) === 'node' ? '0.9.0' : '0.7.0';
 }
+/** С какой версии шлюз держит приложение с `resident` запущенным (и знает `system/player`). */
+export const RESIDENT_MIN_GATEWAY = '0.13.0';
 /** Платформы сборок `targets`, которые называет шлюз (`manifest::platform()`, сборки Node в src/apps/node.rs). */
 export const PLATFORMS = ['darwin-arm64', 'darwin-x86_64', 'linux-aarch64', 'linux-x86_64'];
 /** Модели голоса, под которые пакет может нести снимки; неизвестные шлюз пропускает. */
@@ -506,6 +508,25 @@ export function checkPackage(dir) {
     if (isSemver(manifest.minGateway) && compareSemver(manifest.minGateway, codeMinGateway(manifest)) < 0) {
       warnings.push(`minGateway ${manifest.minGateway}: такой код шлюзы раньше ${codeMinGateway(manifest)} не запустят — в ленте будет ${codeMinGateway(manifest)}`);
     }
+    // ---- значок приложения или плагина: картинка в assets/; сборка кладёт её превью — MagicPlace и ярлык стола ----
+    if (manifest.icon !== undefined) {
+      if (kind !== 'app' && kind !== 'plugin') errors.push('icon: значок — у приложения и плагина; у персонажа картинка — его avatar');
+      else {
+        const icon = asset(manifest.icon, 'icon');
+        if (icon) {
+          const buf = readAsset(icon);
+          const info = imageInfo(buf);
+          if (!info) errors.push('icon: только WebP или PNG');
+          else {
+            if (buf.length > LIMITS.avatarBytes) errors.push(`icon: ${(buf.length / 1024).toFixed(0)} КБ — не больше ${LIMITS.avatarBytes / 1024} КБ`);
+            if (info.width !== info.height) errors.push(`icon: картинка квадратная (сейчас ${info.width}×${info.height})`);
+            else if (info.width < 128 || info.width > 1024) errors.push(`icon: от 128 до 1024 точек (сейчас ${info.width})`);
+          }
+          result.icon = icon;
+        }
+      }
+    }
+
     checkCode(manifest, kind, files, result, foreign);
     return result;
   }
@@ -1024,6 +1045,14 @@ function checkCode(m, kind, files, result, foreign) {
   }
   if (m.dataVersion !== undefined && m.dataVersion !== null && !(Number.isInteger(m.dataVersion) && m.dataVersion >= 0 && m.dataVersion <= 0xffffffff)) {
     errors.push('dataVersion: целое число — вид данных, который хранит плагин');
+  }
+  // ---- держать запущенным: только приложение (manifest.rs, `resident`) ----
+  if (m.resident !== undefined && m.resident !== null && typeof m.resident !== 'boolean') {
+    errors.push('resident: true или false — держать ли программу запущенной всё время');
+  } else if (m.resident === true && kind !== 'app') {
+    errors.push('resident: держать запущенным можно только приложение (kind: app)');
+  } else if (m.resident === true && !(isSemver(m.minGateway) && compareSemver(m.minGateway, RESIDENT_MIN_GATEWAY) >= 0)) {
+    warnings.push(`resident: шлюзы до ${RESIDENT_MIN_GATEWAY} его не знают и выгрузят программу за простой — поставьте minGateway ${RESIDENT_MIN_GATEWAY}`);
   }
   const prefer = trimmed(m.prefer);
   if (prefer !== null && prefer !== 'home' && prefer !== 'here') errors.push(`prefer «${prefer}»: home (тяжёлое — на компьютере) или here`);

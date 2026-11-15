@@ -59,8 +59,13 @@ jobs:
           umask 077
           key="$RUNNER_TEMP/packages.key"
           printf '%s\n' "$PACKAGES_SECRET_KEY" > "$key"
-          printf '%s\n' "$PACKAGES_KEY_PASSWORD" | minisign -S -s "$key" -m dist/catalog.json \
-            -x dist/catalog.json.minisig -t "duowave catalog $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          # catalog.json, and reach.json beside it («где что работает»): a gateway with the catalog's keys takes
+          # reach.json only with reach.json.minisig that holds, as it does the feed.
+          for file in dist/catalog.json dist/reach.json; do
+            [ -f "$file" ] || continue
+            printf '%s\n' "$PACKAGES_KEY_PASSWORD" | minisign -S -s "$key" -m "$file" \
+              -x "$file.minisig" -t "duowave catalog $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          done
           rm -f "$key"
       - name: The signature holds
         if: env.SIGNING == 'true'
@@ -69,14 +74,18 @@ jobs:
         run: |
           keys=$(tr -d '\r' < packages.pub | grep -v -e '^untrusted comment:' -e '^[[:space:]]*$' || true)
           [ -n "$keys" ] || { echo "::error::packages.pub has no key"; exit 1; }
-          for key in $keys; do
-            if minisign -Vq -P "$key" -m dist/catalog.json -x dist/catalog.json.minisig; then
-              echo "catalog.json is signed by $key"
-              exit 0
-            fi
+          for file in dist/catalog.json dist/reach.json; do
+            [ -f "$file" ] || continue
+            signed=
+            for key in $keys; do
+              if minisign -Vq -P "$key" -m "$file" -x "$file.minisig"; then
+                echo "$file is signed by $key"
+                signed=yes
+                break
+              fi
+            done
+            [ -n "$signed" ] || { echo "::error::$file.minisig matches no key of packages.pub"; exit 1; }
           done
-          echo "::error::catalog.json.minisig matches no key of packages.pub"
-          exit 1
       - name: Unsigned
         if: env.SIGNING != 'true'
         run: >-

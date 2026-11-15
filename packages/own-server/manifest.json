@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "kind": "app",
+  "runtime": "process",
+  "id": "own-server",
+  "version": "0.1.0",
+  "title": "VPN",
+  "description": "Свои серверы для DuoWave: подписка или ссылки (VLESS с Reality и XHTTP, Hysteria 2, TUIC, Shadowsocks 2022, Trojan, AnyTLS, WireGuard). Шлюз сам решает, кому идти через сервер, а кому напрямую: модели, слух и голос, разговор колонки, приложения — каждый своей строкой. Только для колонки.",
+  "languages": [
+    "ru",
+    "en"
+  ],
+  "locales": {
+    "en": {
+      "title": "VPN",
+      "description": "Your own servers for DuoWave: a subscription or links (VLESS with Reality and XHTTP, Hysteria 2, TUIC, Shadowsocks 2022, Trojan, AnyTLS, WireGuard). The gateway decides who goes through a server and who goes directly: models, hearing and voice, the speaker’s own talk, apps — each on its own line. Speaker only."
+    }
+  },
+  "license": "Apache-2.0; движок shoes — MIT, его часть WireGuard — MPL-2.0 (SOURCE.md)",
+  "icon": "avatar.webp",
+  "api": "^2",
+  "minGateway": "0.13.0",
+  "runs": [
+    "station"
+  ],
+  "resident": true,
+  "targets": {
+    "linux-aarch64": {
+      "file": "bin/duowave-own-server-linux-aarch64",
+      "sha256": "2c356f96d9329163b09742224770c8f3abc4a3d124d806295efd88e9ee9d96ed"
+    }
+  },
+  "health": {
+    "path": "/health",
+    "intervalS": 15
+  },
+  "budget": {
+    "memoryMb": 32,
+    "storageMb": 1
+  },
+  "permissions": [
+    "call:system/network"
+  ],
+  "contributes": {
+    "panel": {
+      "slots": [
+        "desk.widgets"
+      ],
+      "sections": [
+        {
+          "id": "own-server",
+          "title": "VPN"
+        }
+      ],
+      "calls": [
+        "status",
+        "select",
+        "check",
+        "refresh",
+        "add",
+        "remove",
+        "rename"
+      ]
+    }
+  }
+}

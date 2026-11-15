@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "kind": "app",
+  "runtime": "process",
+  "id": "airplay",
+  "version": "0.1.1",
+  "title": "AirPlay",
+  "description": "Колонка — приёмник AirPlay: iPhone, iPad и Mac играют на неё музыку и любой звук. Заиграл телефон — колонка замолкает сама; голосом: «пауза», «продолжай», «дальше», «назад». Только для колонки.",
+  "languages": [
+    "ru",
+    "en"
+  ],
+  "locales": {
+    "en": {
+      "title": "AirPlay",
+      "description": "The speaker becomes an AirPlay receiver: iPhone, iPad and Mac play music and any sound on it. When the phone starts playing, the speaker falls silent itself; by voice: “pause”, “resume”, “next”, “back”. Speaker only."
+    }
+  },
+  "license": "Apache-2.0; декодер AAC — LGPL-3.0 (SOURCE.md)",
+  "icon": "avatar.webp",
+  "api": "^2",
+  "minGateway": "0.13.0",
+  "runs": [
+    "station"
+  ],
+  "resident": true,
+  "targets": {
+    "linux-aarch64": {
+      "file": "bin/duowave-airplay-linux-aarch64",
+      "sha256": "b14a51bb26ec7efc89b1197590c0eaa3d349a2f96242844ba6a27330af162d25"
+    }
+  },
+  "health": {
+    "path": "/health",
+    "intervalS": 15
+  },
+  "budget": {
+    "memoryMb": 32,
+    "storageMb": 1
+  },
+  "permissions": [
+    "call:system/player",
+    "listen:system/player"
+  ],
+  "contributes": {
+    "bus": {
+      "on": [
+        {
+          "from": "system/player",
+          "event": "control",
+          "handler": "control"
+        }
+      ]
+    }
+  }
+}

@@ -215,6 +215,15 @@
           "maxItems": 8,
           "items": { "$ref": "#/$defs/download" },
           "description": "Что пакет скачает сам, кроме архива (манифест downloads). Node шлюза здесь не пишется: шлюз сам знает, есть ли он у него."
+        },
+        "reach": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Откуда до приложения достучаться (reach.json каталога, apps): blocked — страны, откуда оно не работает, или only — откуда только. «Выход в интернет» шлюза решает по ним, пускать ли приложение через сервер человека. Не путать с regions — где приложение имеет смысл. Старые шлюзы поле пропускают.",
+          "properties": {
+            "blocked": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Z]{2}$" } },
+            "only": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Z]{2}$" } }
+          }
         }
       }
     },
