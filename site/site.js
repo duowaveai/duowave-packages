@@ -19,6 +19,13 @@
     { kind: 'theme', title: 'Темы пульта', soon: 'Темы пульта', lede: 'Оформление пульта шлюза.' },
     { kind: 'plugin', title: 'Плагины', soon: 'Плагины', lede: 'Новые навыки шлюза.' },
     { kind: 'app', title: 'Приложения', soon: 'Приложения', lede: 'Программы рядом со шлюзом.' },
+    {
+      kind: 'agent',
+      title: 'Агенты',
+      soon: 'Агенты',
+      lede: 'Агенты для кода в рабочих папках. Программу агента ставите вы сами; карточка говорит DuoWave, как её запустить.',
+      install: () => '/panel/#/magicplace/store?kind=agent',
+    },
   ];
 
   const PLACES = { pc: 'на компьютере', station: 'на колонке', stationServer: 'на колонке' };
@@ -266,6 +273,13 @@
       facts.push(['Собирает', [`компьютер: своя программа${pkg.runtime === 'node' ? ' на Node' : ''} с правами пользователя`]]);
     }
     if (pkg.permissions && pkg.permissions.length) facts.push(['Права', [pkg.permissions.map(rightWords).join(' · ')]]);
+    // Карточка агента: программу ставит человек сам, вход — в самой программе.
+    if (pkg.agent) {
+      if (pkg.agent.program && pkg.agent.program.install) facts.push(['Поставить', [pkg.agent.program.install]]);
+      if (pkg.agent.signin && pkg.agent.signin.hint) facts.push(['Вход', [pkg.agent.signin.hint]]);
+      if (pkg.agent.asks === false) facts.push(['Вопросы', ['делает всё без вопросов перед командами']]);
+      if (pkg.agent.terms) facts.push(['Условия', [pkg.agent.terms]]);
+    }
 
     const listen = samples.length
       ? el(

@@ -8,9 +8,15 @@
 //   node tools/pin.mjs --no-feed <лента> <id>   закрепить без адреса ленты: в каталоге — только id и хеш архива (шлюз
 //                                               новее 0.11.0), адрес остаётся здесь, в work/pins/feeds.json, для проверки
 //   node tools/pin.mjs --remove <лента> <id>    убрать строку
+//   --platform <платформа>                      у приложения со сборками под платформы — чей архив закрепить
+//                                               (linux-aarch64 — колонка); одна сборка — берётся она сама. Шлюз
+//                                               ставит архив своей платформы, только если закреплён именно он
 //
-// <лента> — адрес её catalog.json: HTTPS (HTTP — только localhost и 127.0.0.1). Пакеты с кодом не закрепляются: из
-// чужих лент шлюз код не ставит. Закрепили — каталог публикуется как обычно (tools/publish.sh); выпуск шлюза не нужен.
+// <лента> — адрес её catalog.json: HTTPS (HTTP — только localhost и 127.0.0.1). Пакет с кодом (плагин, приложение
+// одним архивом) шлюз из чужой ленты ставит, только когда подписанный каталог закрепил этот архив: закрепляйте код,
+// только посмотрев его (архив кладётся в work/pins/). У приложения со сборками под платформы закрепляется архив одной
+// платформы (`--platform`): шлюз другой платформы его не поставит. Закрепили — каталог публикуется как обычно
+// (tools/publish.sh); выпуск шлюза не нужен (код из чужих лент ставят шлюзы с `code_allowed`, старые его не ставят).
 // Зависимостей нет: Node 18+.
 
 import { createHash } from 'node:crypto';
@@ -168,7 +174,7 @@ function describe(archive) {
   return { manifest: m, files: entries.length, voices };
 }
 
-async function pin(feedArg, id, { noFeed = false } = {}) {
+async function pin(feedArg, id, { noFeed = false, platform = null } = {}) {
   if (!isPackageId(id)) fail(`«${id}» — не id пакета`);
   const url = feedUrl(feedArg);
   const config = readConfig();
@@ -178,13 +184,22 @@ async function pin(feedArg, id, { noFeed = false } = {}) {
   const entry = newestOf(await readFeed(url), id);
   if (!entry) fail(`в ${url.href} нет пакета «${id}»`);
   if (entry.hidden) fail(`«${id}» в ${url.href} скрыт (hidden)`);
-  if (entry.kind === 'plugin' || entry.kind === 'app') {
-    fail(`«${id}» — ${entry.kind === 'app' ? 'приложение' : 'плагин'} с кодом: из чужих лент шлюз код не ставит, рекомендовать нечего`);
-  }
-  const sha256 = typeof entry.sha256 === 'string' ? entry.sha256.toLowerCase() : '';
+  if (entry.kind === 'agent') fail(`«${id}» — карточка агента: из чужих лент шлюз их не ставит, рекомендовать нечего`);
+  const coded = entry.kind === 'plugin' || entry.kind === 'app';
+  // Приложение со сборками: шлюз ставит архив своей платформы — закрепляется он (колонка — linux-aarch64).
+  const platforms = coded && entry.platforms ? Object.keys(entry.platforms) : [];
+  let archiveOf = entry;
+  if (platforms.length) {
+    const chosen = platform ?? (platforms.length === 1 ? platforms[0] : null);
+    if (!chosen) fail(`«${id}» — приложение со сборками (${platforms.join(', ')}): чей архив закрепить — --platform <платформа>`);
+    if (!entry.platforms[chosen]) fail(`у «${id}» нет сборки ${chosen}: есть ${platforms.join(', ')}`);
+    archiveOf = entry.platforms[chosen];
+    console.log(`  сборка ${chosen}: шлюзы этой платформы поставят её, остальные — нет`);
+  } else if (platform) fail(`«${id}» — без сборок под платформы: --platform не нужен`);
+  const sha256 = typeof archiveOf.sha256 === 'string' ? archiveOf.sha256.toLowerCase() : '';
   if (!/^[0-9a-f]{64}$/.test(sha256)) fail(`у «${id}» в ленте нет sha256 архива`);
   // Архив — с того же адреса, что лента (так берёт его шлюз), и тот самый, что лента называет.
-  const archiveUrl = new URL(entry.url ?? '', url);
+  const archiveUrl = new URL(archiveOf.url ?? '', url);
   if (archiveUrl.origin !== url.origin) fail(`архив «${id}» — не с адреса ленты (${archiveUrl.href})`);
   const archive = await download(archiveUrl, MAX_ARCHIVE_BYTES);
   const actual = createHash('sha256').update(archive).digest('hex');
@@ -213,6 +228,7 @@ async function pin(feedArg, id, { noFeed = false } = {}) {
   console.log(`  архив ${short(sha256)}, ${(archive.length / 1024).toFixed(1)} КБ, файлов: ${inside.files}`);
   if (inside.voices.length) console.log(`  голос: ${inside.voices.join(', ')}${inside.voices.includes('unknown') ? ' — происхождение не проверено: послушайте и решите, рекомендовать ли' : ''}`);
   console.log(`  сохранён для просмотра: ${relative(process.cwd(), saved)} (tar -tzf — что внутри)`);
+  if (coded) console.log('  это код: шлюзы с `code_allowed` поставят его из чужой ленты — закрепляйте, только прочитав его');
   if (noFeed) console.log(`  в каталоге — без адреса ленты: только id и хеш (шлюз новее 0.11.0); адрес — в ${relative(process.cwd(), ADDRESSES)}`);
   if (!was) console.log('✓ вписан в feed.config.json (recommends)');
   else if (was.sha256 === sha256) console.log('✓ уже был вписан с этим же архивом');
@@ -262,7 +278,9 @@ async function list() {
       const entry = newestOf(await readFeed(new URL(feed)), item.id);
       if (!entry) console.log(`  ✗ ${head}: в ленте его больше нет`);
       else if (entry.hidden) console.log(`  ✗ ${head}: скрыт (hidden)`);
-      else if (String(entry.sha256 ?? '').toLowerCase() === item.sha256) console.log(`  ✓ ${head}: ${entry.version}, тот же архив`);
+      else if ([entry, ...Object.values(entry.platforms ?? {})].some((archive) => String(archive?.sha256 ?? '').toLowerCase() === item.sha256)) {
+        console.log(`  ✓ ${head}: ${entry.version}, тот же архив`);
+      }
       else {
         changed += 1;
         console.log(`  ! ${head}: архив поменялся (в ленте ${entry.version}, ${short(String(entry.sha256 ?? ''))}) — пометки у шлюзов нет, пока не посмотрите и не закрепите заново${item.feed ? '' : ' (с --no-feed)'}`);
@@ -282,16 +300,22 @@ async function main() {
       console.log('node tools/pin.mjs | node tools/pin.mjs [--no-feed] <лента> <id> | node tools/pin.mjs --remove <лента> <id>');
       return;
     }
+    let platform = null;
+    const at = args.indexOf('--platform');
+    if (at >= 0) {
+      platform = args[at + 1] ?? fail('--platform <платформа>: linux-aarch64, darwin-arm64…');
+      args.splice(at, 2);
+    }
     if (args[0] === '--no-feed') {
       if (args.length !== 3) fail('node tools/pin.mjs --no-feed <лента> <id>');
-      return await pin(args[1], args[2], { noFeed: true });
+      return await pin(args[1], args[2], { noFeed: true, platform });
     }
     if (args[0] === '--remove') {
       if (args.length !== 3) fail('node tools/pin.mjs --remove <лента> <id>');
       return remove(args[1], args[2]);
     }
     if (args.length !== 2) fail('node tools/pin.mjs <лента> <id>');
-    await pin(args[0], args[1]);
+    await pin(args[0], args[1], { platform });
   } catch (error) {
     fail(error.message);
   }

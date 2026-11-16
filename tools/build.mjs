@@ -10,9 +10,10 @@
 // Код — только в подписанной ленте: шлюз ставит плагины и приложения из каталога, только если catalog.json подписан
 // ключом каталога (`entry_state` в gateway/src/plugins/catalog.rs). Подписывает CI (.github/workflows/pages.yml) — он
 // и зовёт сборку с --signed, когда ключ есть в секретах. Без --signed пакеты с кодом проверяются, но в ленту не идут —
-// сборка называет каждый. Своя лента (feed.config.json own) кода не несёт никогда: из своих источников шлюз его не
-// ставит. У приложения со сборками (`runtime: process`) — архив под каждую платформу (`platforms`, в нём только её
-// сборка) и общий архив со всеми, если он укладывается в пределы установщика.
+// сборка называет каждый. Своя лента (feed.config.json own) несёт код без подписи: шлюз ставит его оттуда, только
+// когда главный каталог закрепил по хешу тот архив, что он берёт (tools/pin.mjs). У приложения со сборками (`runtime:
+// process`) — архив под каждую платформу (`platforms`, в нём только её сборка) и общий архив со всеми, если он
+// укладывается в пределы установщика; из своей ленты шлюз берёт архив своей платформы (pin.mjs --platform).
 //
 // Пакет с ошибкой не собирается — и весь каталог тоже: лента либо целая, либо прежняя. Зависимостей нет: Node 18+.
 // Формат — docs/plans/characters.md шлюза, раздел 2; схема — schemas/catalog.schema.json.
@@ -32,6 +33,7 @@ import { join, resolve, relative, sep, isAbsolute } from 'node:path';
 import {
   ROOT,
   ENGINES,
+  SIGNED_KINDS,
   CODE_LIMITS,
   checkPackage,
   codeMinGateway,
@@ -53,12 +55,18 @@ const FORMAT = 1;
  * которого старый шлюз не поймёт, — поднять здесь или в манифесте до версии, где они появились. У кода — нижняя граница
  * `codeMinGateway` в check.mjs: ниже её лента не опустит, что бы ни сказал манифест.
  */
-const DEFAULT_MIN_GATEWAY = { character: '0.1.0', theme: '0.1.0' };
+const DEFAULT_MIN_GATEWAY = { character: '0.1.0', theme: '0.1.0', agent: '0.15.0' };
 /** Архив больше — установщик шлюза откажет. */
 const MAX_ARCHIVE_BYTES = 16 * 1024 * 1024;
 
 /** Дополнительных лент — не больше стольких: столько же читает шлюз. */
 const MAX_FEEDS = 4;
+
+/** Поля карточки агента для ленты — те же, что в манифесте. */
+function agentOf(m) {
+  const pick = (keys) => Object.fromEntries(keys.filter((key) => m[key] !== undefined).map((key) => [key, m[key]]));
+  return pick(['site', 'terms', 'program', 'acp', 'signin', 'model', 'resume', 'asks']);
+}
 
 function parseArgs(argv) {
   const args = { check: false, allowEmpty: false, signed: false, src: join(ROOT, 'packages'), out: join(ROOT, 'dist') };
@@ -368,12 +376,19 @@ function main() {
   const unknownRecommended = config.recommended.filter((id) => !results.some((r) => r.manifest.id === id));
   if (unknownRecommended.length) fail(`feed.config.json: recommended — нет таких пакетов: ${unknownRecommended.join(', ')}`);
 
-  // Код — только в подписанную ленту; в свою — никогда.
+  // Код и карточки агентов — только в подписанную ленту. Своя лента несёт код (плагин, приложение на Node, приложение
+  // со сборками под платформы): шлюз ставит его, только когда наш подписанный каталог закрепил именно тот архив, что он
+  // берёт, по хешу — у приложения со сборками архив своей платформы (tools/pin.mjs --platform, `code_allowed` в
+  // catalog.rs шлюза 0.15.0+). Карточку агента — нет.
   const skipped = [];
   const included = results.filter((r) => {
-    if (!r.code) return true;
-    if (config.own) skipped.push({ r, why: 'своя лента, а из своих источников шлюз код не ставит' });
-    else if (!args.signed) skipped.push({ r, why: 'код идёт только в подписанную ленту (сборка с --signed; подпись ставит CI ключом каталога)' });
+    if (!SIGNED_KINDS.includes(r.kind)) return true;
+    if (config.own && r.kind !== 'agent') return true;
+    if (config.own) skipped.push({ r, why: 'своя лента: из своих источников шлюз не ставит карточки агентов' });
+    else if (!args.signed) {
+      const what = r.kind === 'agent' ? 'карточка агента' : 'код';
+      skipped.push({ r, why: `${what} идёт только в подписанную ленту (сборка с --signed; подпись ставит CI ключом каталога)` });
+    }
     else return true;
     return false;
   });
@@ -511,6 +526,15 @@ function main() {
       ...(config.unlisted.includes(m.id) ? { unlisted: true } : {}),
       ...(addedAt ? { addedAt } : {}),
       ...(downloads.length ? { downloads } : {}),
+      // Пакеты-пара (шлюз 0.15.0; старые поле пропускают): поставили один — пульт предлагает другой. И сколько места
+      // займут файлы распакованными: пульт говорит это до установки.
+      ...(Array.isArray(m.companions) && m.companions.length
+        ? { companions: m.companions.map((pair) => ({ id: pair.id, ...(pair.why ? { why: pair.why } : {}) })) }
+        : {}),
+      unpacked: r.bytes,
+      // Карточка агента (шлюз 0.15.0): что поставить, как запустить по ACP, как войти, условия — MagicPlace показывает
+      // их до установки.
+      ...(m.kind === 'agent' ? { agent: agentOf(m) } : {}),
       // Откуда до приложения достучаться (reach.json apps; шлюз с «Выходом в интернет», старые поле пропускают).
       ...(appReach(reach, m.id) ? { reach: appReach(reach, m.id) } : {}),
     });

@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "kind": "agent",
+  "id": "codex",
+  "version": "1.0.0",
+  "api": "^1",
+  "title": "Codex CLI",
+  "description": "Агент для кода от OpenAI: сам читает и правит файлы рабочей папки и запускает команды в своей песочнице. DuoWave запускает Codex, который вы поставили и в который вошли сами, — по Agent Client Protocol, через переходник codex-acp.",
+  "languages": ["ru", "en"],
+  "locales": {
+    "en": {
+      "title": "Codex CLI",
+      "description": "OpenAI's coding agent: it reads and changes the work folder's files and runs commands in its own sandbox. DuoWave runs the Codex you installed and signed in to yourself — over the Agent Client Protocol, through the codex-acp adapter."
+    }
+  },
+  "runs": ["pc"],
+  "license": "Apache-2.0 (карточка); Codex CLI и переходник codex-acp — Apache-2.0",
+  "site": "https://github.com/openai/codex",
+  "terms": "https://openai.com/policies/terms-of-use/",
+  "program": {
+    "name": "codex-acp",
+    "install": "npm install -g @openai/codex @agentclientprotocol/codex-acp",
+    "check": ["--version"]
+  },
+  "acp": { "command": [], "protocol": 1 },
+  "signin": { "hint": "codex login" },
+  "model": { "choose": true, "via": "agent" },
+  "resume": "codex resume {session}",
+  "asks": false
+}

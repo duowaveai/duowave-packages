@@ -25,6 +25,20 @@
       "$ref": "#/$defs/semver",
       "description": "Необязательно: с какой версии шлюза пакет ставится. Читает только сборка каталога; без него — значение сборки по виду пакета."
     },
+    "companions": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 32 },
+          "why": { "type": "string", "maxLength": 200 }
+        },
+        "additionalProperties": false
+      },
+      "description": "Пакеты-пара: персонаж и его слово (позже — голос). Каждый называет другого; поставили один — пульт предлагает другой (шлюз 0.15.0)."
+    },
     "contributes": {
       "type": "object",
       "required": ["characters"],

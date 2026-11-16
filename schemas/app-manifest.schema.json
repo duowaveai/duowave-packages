@@ -109,6 +109,20 @@
       "items": { "$ref": "#/$defs/download" },
       "description": "Необязательно: что приложение скачает само, кроме своего архива, — зависимости, браузер для рендера, модели. MagicPlace называет это словами до установки («При первой съёмке — Remotion и браузер для рендера, около 250 МБ»). Node шлюза сюда не пишется: шлюз сам знает, есть ли он у него. Переводы названий — locales.<код>.downloads.<id>."
     },
+    "companions": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 32 },
+          "why": { "type": "string", "maxLength": 200 }
+        },
+        "additionalProperties": false
+      },
+      "description": "Пакеты-пара: персонаж и его слово (позже — голос). Каждый называет другого; поставили один — пульт предлагает другой (шлюз 0.15.0)."
+    },
     "contributes": { "$ref": "#/$defs/contributes" }
   },
   "allOf": [
@@ -356,6 +370,22 @@
         "events": { "type": "array", "items": { "$ref": "#/$defs/event" } },
         "schedules": { "type": "array", "maxItems": 10, "items": { "$ref": "#/$defs/schedule" } },
         "bus": { "$ref": "#/$defs/bus" },
+        "activators": {
+          "type": "array",
+          "maxItems": 4,
+          "description": "Свои слова, что будят колонку (шлюз 0.15.0): нужна связь call:system/activator, звук — письмом system/mic.",
+          "items": {
+            "type": "object",
+            "required": ["id", "title"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 32 },
+              "title": { "type": "string", "minLength": 1, "maxLength": 40 },
+              "heard": { "type": "array", "maxItems": 12, "items": { "type": "string", "maxLength": 40 } },
+              "character": { "type": "string", "pattern": "^[a-z][a-z0-9-]*:[a-z0-9_-]+$" }
+            },
+            "additionalProperties": false
+          }
+        },
         "panel": { "type": "object", "description": "Часть пульта: calls, cards, разделы окна — docs/plugins/AUTHORING.md, «Пульт»." },
         "themes": { "type": "array" },
         "characters": { "type": "array" }

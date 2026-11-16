@@ -147,7 +147,7 @@
       ],
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z](?:[a-z0-9-]{0,30}[a-z0-9])?$" },
-        "kind": { "enum": ["plugin", "app", "character", "theme"] },
+        "kind": { "enum": ["plugin", "app", "character", "theme", "agent"] },
         "version": { "$ref": "#/$defs/semver" },
         "title": { "type": "string", "minLength": 1, "maxLength": 80 },
         "description": { "type": "string", "maxLength": 500 },
@@ -252,6 +252,46 @@
           "maxItems": 8,
           "items": { "$ref": "#/$defs/download" },
           "description": "Что пакет скачает сам, кроме архива (манифест downloads). Node шлюза здесь не пишется: шлюз сам знает, есть ли он у него."
+        },
+        "agent": {
+          "type": "object",
+          "required": ["program", "acp"],
+          "description": "Карточка агента (kind agent, шлюз 0.15.0; docs/plans/router-and-works.md шлюза, 7б): какую программу человек ставит сам и как, как её запустить по Agent Client Protocol, как проверить вход, условия агента. Шлюз ставит карточку только из подписанной основной ленты; программа не скачивается и не запускается установкой.",
+          "properties": {
+            "site": { "type": "string", "pattern": "^https://" },
+            "terms": { "type": "string", "pattern": "^https://" },
+            "program": {
+              "type": "object",
+              "required": ["name"],
+              "properties": {
+                "name": { "type": "string", "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]{0,63}$" },
+                "install": { "type": "string" },
+                "check": { "type": "array", "maxItems": 16, "items": { "type": "string" } },
+                "minVersion": { "type": "string" }
+              }
+            },
+            "acp": {
+              "type": "object",
+              "required": ["command"],
+              "properties": {
+                "command": { "type": "array", "maxItems": 16, "items": { "type": "string" } },
+                "protocol": { "const": 1 }
+              }
+            },
+            "signin": {
+              "type": "object",
+              "properties": {
+                "check": { "type": "array", "maxItems": 16, "items": { "type": "string" } },
+                "hint": { "type": "string" }
+              }
+            },
+            "model": {
+              "type": "object",
+              "properties": { "choose": { "type": "boolean" }, "via": { "enum": ["agent", "duowave"] } }
+            },
+            "resume": { "type": "string", "pattern": "\\{session\\}" },
+            "asks": { "type": "boolean" }
+          }
         },
         "reach": {
           "type": "object",

@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "kind": "agent",
+  "id": "opencode",
+  "version": "1.0.0",
+  "api": "^1",
+  "title": "OpenCode",
+  "description": "Открытый агент для кода: работает с моделями разных провайдеров, вход и ключи — в самом OpenCode. DuoWave запускает OpenCode, который вы поставили сами, — по Agent Client Protocol.",
+  "languages": ["ru", "en"],
+  "locales": {
+    "en": {
+      "title": "OpenCode",
+      "description": "An open coding agent: it works with models of many providers, its sign-in and keys stay in OpenCode itself. DuoWave runs the OpenCode you installed yourself — over the Agent Client Protocol."
+    }
+  },
+  "runs": ["pc"],
+  "license": "Apache-2.0 (карточка); программа OpenCode — MIT",
+  "site": "https://opencode.ai",
+  "terms": "https://opencode.ai/legal/terms-of-service",
+  "program": {
+    "name": "opencode",
+    "install": "curl -fsSL https://opencode.ai/v2/install | bash"
+  },
+  "acp": { "command": ["acp"], "protocol": 1 },
+  "signin": { "hint": "opencode auth login" },
+  "model": { "choose": true, "via": "agent" },
+  "asks": false
+}

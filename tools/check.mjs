@@ -59,9 +59,24 @@ export const CODE_LIMITS = {
 export const BUDGET_DEFAULTS = { memoryMb: 4, storageMb: 1, filesMb: 64, tasks: 1 };
 
 /** Виды пакетов шлюза (`gateway/src/plugins/manifest.rs`). */
-export const KINDS = ['plugin', 'app', 'character', 'theme'];
+export const KINDS = ['plugin', 'app', 'character', 'theme', 'agent'];
 /** Виды с кодом: шлюз ставит их из каталога только из подписанной ленты (`entry_state` в catalog.rs). */
 export const CODE_KINDS = ['plugin', 'app'];
+/**
+ * Что шлюз ставит только из подписанной основной ленты: код — и карточку агента (docs/plans/router-and-works.md шлюза,
+ * 7б): кода в ней нет, но она называет программу, которую шлюз запустит на компьютере.
+ */
+export const SIGNED_KINDS = ['plugin', 'app', 'agent'];
+/**
+ * Программы, которые карточка агента назвать не может (`NOT_AGENTS` в manifest.rs шлюза): оболочки, интерпретаторы и
+ * то, что запускает данное ему. Карточка называет только агента, которого человек поставил сам.
+ */
+export const NOT_AGENTS = [
+  'sh', 'bash', 'zsh', 'fish', 'dash', 'ksh', 'csh', 'tcsh', 'cmd', 'cmd.exe', 'powershell', 'pwsh', 'python',
+  'python3', 'node', 'deno', 'bun', 'perl', 'ruby', 'php', 'osascript', 'env', 'sudo', 'su', 'doas', 'npx', 'bunx',
+  'pnpx', 'pnpm', 'npm', 'yarn', 'uvx', 'uv', 'pipx', 'pip', 'curl', 'wget', 'git', 'rm', 'mv', 'cp', 'dd', 'find',
+  'xargs', 'open', 'launchctl', 'systemctl', 'ssh', 'scp', 'nc', 'awk', 'sed', 'tee', 'chmod', 'chown',
+];
 /** Что каталог принимает: все виды; код — только в подписанную ленту (tools/build.mjs --signed). */
 export const CATALOG_KINDS = KINDS;
 /** Размещения шлюза (`gateway/src/core/availability.rs`, `Placement::as_str`). */
@@ -501,6 +516,7 @@ export function checkPackage(dir) {
     return result;
   }
   result.manifest = manifest;
+  checkCompanions(manifest, errors);
 
   const assets = new Set(files.filter((f) => f.path.startsWith('assets/')).map((f) => f.path));
   const used = new Set();
@@ -740,6 +756,9 @@ export function checkPackage(dir) {
     }
   }
 
+  // ---- карточка агента (docs/plans/router-and-works.md шлюза, 7б): только данные — программа, команда ACP, вход ----
+  if (kind === 'agent') checkAgent(manifest, errors);
+
   // ---- тема: формат вклада ещё не описан, проверяем только, что он есть ----
   if (kind === 'theme' && (!Array.isArray(contributes?.themes) || contributes.themes.length === 0)) {
     errors.push('contributes.themes: список тем, хотя бы одна');
@@ -747,6 +766,37 @@ export function checkPackage(dir) {
 
   for (const path of assets) if (!used.has(path)) warnings.push(`${path}: манифест на него не ссылается — лишний вес в архиве`);
   return result;
+}
+
+/**
+ * Карточка агента: те же правила, что у шлюза (`agent_card` в manifest.rs). Программа — имя, не путь и не оболочка;
+ * аргументы — списки до 16 строк; ссылки — https; `resume` — с {session}; `model.via` — agent или duowave.
+ */
+export function checkAgent(manifest, errors) {
+  const args = (value, at) => {
+    if (value === undefined) return;
+    if (!Array.isArray(value) || value.length > 16 || value.some((item) => typeof item !== 'string' || !item || item.length > 100 || item.includes('\n'))) {
+      errors.push(`${at}: список аргументов — до 16 строк по 100 знаков`);
+    }
+  };
+  for (const key of ['site', 'terms']) {
+    if (manifest[key] !== undefined && (typeof manifest[key] !== 'string' || !manifest[key].startsWith('https://'))) errors.push(`${key}: ссылка https://`);
+  }
+  if (typeof manifest.terms !== 'string') errors.push('terms: ссылка на условия агента — каталог показывает её до установки');
+  const name = manifest.program?.name;
+  if (typeof name !== 'string' || !/^[A-Za-z0-9_-][A-Za-z0-9._-]{0,63}$/.test(name)) errors.push('program.name: имя программы агента — латиница, цифры, «-», «_», «.»');
+  else if (NOT_AGENTS.includes(name.toLowerCase())) errors.push(`program.name: «${name}» — не агент: карточка называет только программу агента`);
+  if (typeof manifest.program?.install !== 'string' || !manifest.program.install.trim()) errors.push('program.install: команда, которой человек ставит программу сам');
+  args(manifest.program?.check, 'program.check');
+  if (!Array.isArray(manifest.acp?.command)) errors.push('acp.command: аргументы, с которыми программа говорит по ACP');
+  else args(manifest.acp.command, 'acp.command');
+  if (manifest.acp?.protocol !== undefined && manifest.acp.protocol !== 1) errors.push('acp.protocol: шлюз знает версию 1');
+  args(manifest.signin?.check, 'signin.check');
+  if (manifest.model?.via !== undefined && !['agent', 'duowave'].includes(manifest.model.via)) errors.push('model.via: agent или duowave');
+  if (manifest.resume !== undefined && (typeof manifest.resume !== 'string' || !manifest.resume.includes('{session}'))) {
+    errors.push('resume: команда с {session} на месте номера сессии');
+  }
+  if (manifest.asks !== undefined && typeof manifest.asks !== 'boolean') errors.push('asks: true или false');
 }
 
 // ---- код: правила манифеста шлюза (gateway/src/plugins/manifest.rs) ----
@@ -1255,6 +1305,27 @@ function checkDownloads(m, errors) {
   }
 }
 
+/**
+ * Пакеты-пара (`companions` в корне, `companions()` шлюза): персонаж и его слово, позже — голос. До четырёх, каждый —
+ * id другого пакета, один раз; `why` — слова предложения, до 200 знаков.
+ */
+function checkCompanions(manifest, errors) {
+  const list = manifest.companions;
+  if (list === undefined || list === null) return;
+  if (!Array.isArray(list)) {
+    errors.push('companions: список пакетов-пары [{ id, why }]');
+    return;
+  }
+  if (list.length > 4) errors.push('companions: до 4 пакетов');
+  const seen = new Set();
+  list.slice(0, 4).forEach((item, index) => {
+    const id = typeof item?.id === 'string' ? item.id.trim() : '';
+    if (!isPackageId(id) || id === manifest.id || seen.has(id)) errors.push(`companions[${index}]: id другого пакета, один раз`);
+    seen.add(id);
+    if (item?.why !== undefined && (typeof item.why !== 'string' || item.why.length > 200)) errors.push(`companions[${index}].why: строка до 200 знаков`);
+  });
+}
+
 /** `contributes` пакета с кодом (`contributes()` и `bus_spec()` шлюза). */
 function checkContributes(value, permissions, settings, errors) {
   if (value === undefined || !isObject(value)) return; // «contributes: объект» уже сказано
@@ -1264,6 +1335,27 @@ function checkContributes(value, permissions, settings, errors) {
     errors.push(`contributes.${key}: список`);
     return [];
   };
+
+  // Свои слова, что будят колонку (`activators()` шлюза): id, слово как его говорят, как пишет распознавание, персонаж.
+  const activators = list('activators');
+  if (activators.length && !asks(permissions, 'system/activator', 'call')) errors.push('contributes.activators: нужна связь call:system/activator');
+  if (activators.length > 4) errors.push('contributes.activators: до 4 слов');
+  const words = new Set();
+  activators.slice(0, 4).forEach((item, index) => {
+    const at = `contributes.activators[${index}]`;
+    const id = typeof item?.id === 'string' ? item.id : '';
+    if (!isPackageId(id)) errors.push(`${at}: id — строчные латинские буквы, цифры и «-»`);
+    else if (words.has(id)) errors.push(`${at}: id «${id}» дважды`);
+    words.add(id);
+    const title = typeof item?.title === 'string' ? item.title.trim() : '';
+    if (!title || [...title].length > 40) errors.push(`${at}: title — слово, как его говорят, до 40 знаков`);
+    if (item?.heard !== undefined && !(Array.isArray(item.heard) && item.heard.every((word) => typeof word === 'string'))) {
+      errors.push(`${at}: heard — список слов, как их пишет распознавание`);
+    }
+    if (item?.character !== undefined && (typeof item.character !== 'string' || !/^[a-z][a-z0-9-]*:[a-z0-9_-]+$/.test(item.character))) {
+      errors.push(`${at}: character — «<пакет>:<персонаж>»`);
+    }
+  });
   const handlerOf = (item, fallback, at) => {
     const handler = (typeof item?.handler === 'string' ? item.handler : fallback).trim();
     if (!isIdentifier(handler)) errors.push(`${at}: handler «${handler}» — имя функции: латинские буквы, цифры, _ и $, не с цифры`);

@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "kind": "agent",
+  "id": "factory-droid",
+  "version": "1.0.0",
+  "api": "^1",
+  "title": "Factory Droid",
+  "description": "Агент для кода от Factory: сам читает и правит файлы рабочей папки и запускает команды. DuoWave запускает Droid, который вы поставили и в который вошли сами, — по Agent Client Protocol.",
+  "languages": ["ru", "en"],
+  "locales": {
+    "en": {
+      "title": "Factory Droid",
+      "description": "Factory's coding agent: it reads and changes the work folder's files and runs commands by itself. DuoWave runs the Droid you installed and signed in to yourself — over the Agent Client Protocol."
+    }
+  },
+  "runs": ["pc"],
+  "license": "Apache-2.0 (карточка); программа Droid — по условиям Factory",
+  "site": "https://factory.ai",
+  "terms": "https://factory.com/legal/terms-individual",
+  "program": {
+    "name": "droid",
+    "install": "curl -fsSL https://app.factory.ai/cli | sh",
+    "check": ["--version"]
+  },
+  "acp": { "command": ["exec", "--output-format", "acp"], "protocol": 1 },
+  "signin": {},
+  "model": { "choose": false, "via": "agent" },
+  "resume": "droid --resume {session}"
+}

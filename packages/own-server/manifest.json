@@ -3,7 +3,7 @@
   "kind": "app",
   "runtime": "process",
   "id": "own-server",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "title": "VPN",
   "description": "Свои серверы для DuoWave: подписка или ссылки (VLESS с Reality и XHTTP, Hysteria 2, TUIC, Shadowsocks 2022, Trojan, AnyTLS, WireGuard). Шлюз сам решает, кому идти через сервер, а кому напрямую: модели, слух и голос, разговор колонки, приложения — каждый своей строкой. Только для колонки.",
   "languages": [
@@ -33,7 +33,7 @@
   "targets": {
     "linux-aarch64": {
       "file": "bin/duowave-own-server-linux-aarch64",
-      "sha256": "2c356f96d9329163b09742224770c8f3abc4a3d124d806295efd88e9ee9d96ed"
+      "sha256": "29203027b04314708b9568816149065d80679a0f37dc58ada14adcee6aba36c9"
     }
   },
   "health": {
@@ -41,7 +41,7 @@
     "intervalS": 15
   },
   "budget": {
-    "memoryMb": 32,
+    "memoryMb": 18,
     "storageMb": 1
   },
   "permissions": [
