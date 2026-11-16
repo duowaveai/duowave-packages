@@ -37,6 +37,7 @@ import {
   codeMinGateway,
   compareSemver,
   feedConfig,
+  feedPhrases,
   imageInfo,
   packageDirs,
   plural,
@@ -352,6 +353,16 @@ function main() {
   if (!ok) fail('есть ошибки — каталог не собран');
   const feeds = readFeeds();
   const reach = readReach(results.map((r) => r.manifest.id));
+  // Коронные фразы персонажей (phrases.json): только пакетов этой ленты и их персонажей.
+  let phrases;
+  try {
+    phrases = feedPhrases(
+      Object.fromEntries(results.map((r) => [r.manifest.id, (r.manifest.contributes?.characters ?? []).map((c) => c.id)])),
+    );
+  } catch (error) {
+    fail(error.message);
+  }
+  const phraseCount = Object.values(phrases).flatMap((byCharacter) => Object.values(byCharacter)).reduce((n, c) => n + c.lines.length, 0);
   const unknownUnlisted = config.unlisted.filter((id) => !results.some((r) => r.manifest.id === id));
   if (unknownUnlisted.length) fail(`feed.config.json: unlisted — нет таких пакетов: ${unknownUnlisted.join(', ')}`);
   const unknownRecommended = config.recommended.filter((id) => !results.some((r) => r.manifest.id === id));
@@ -376,7 +387,8 @@ function main() {
     const unlisted = config.unlisted.length ? `, скрыты от списков: ${config.unlisted.join(', ')}` : '';
     const recommended = config.recommended.length ? `, рекомендуем: ${config.recommended.join(', ')}` : '';
     const pinned = config.recommends.length ? `, из чужих лент: ${config.recommends.map((pin) => pin.id).join(', ')}` : '';
-    console.log(`Проверка пройдена: ${plural(results.length, ['пакет', 'пакета', 'пакетов'])}${extra}${hidden}${unlisted}${recommended}${pinned}.`);
+    const said = phraseCount ? `, коронных фраз: ${phraseCount}` : '';
+    console.log(`Проверка пройдена: ${plural(results.length, ['пакет', 'пакета', 'пакетов'])}${extra}${hidden}${unlisted}${recommended}${pinned}${said}.`);
     tellSkipped();
     return;
   }
@@ -513,6 +525,8 @@ function main() {
     packages,
     ...(feeds.length ? { feeds } : {}),
     ...(config.recommends.length ? { recommends: config.recommends } : {}),
+    // Коронные фразы персонажей (phrases.json): шлюз новее 0.13.0 говорит их изредка, старые поле пропускают.
+    ...(phraseCount ? { phrases } : {}),
   };
   writeFileSync(join(out, 'catalog.json'), pretty(catalog) + '\n');
   if (reach) {
@@ -554,6 +568,11 @@ function main() {
   if (faced.length) console.log(`  лица приложений: ${faced.map((p) => `${p.id} — ${p.faces.join(', ')}`).join('; ')}`);
   const recommended = packages.filter((p) => p.recommended).map((p) => p.id);
   if (recommended.length) console.log(`  рекомендуем: ${recommended.join(', ')}`);
+  for (const [pkg, byCharacter] of Object.entries(phrases)) {
+    for (const [character, given] of Object.entries(byCharacter)) {
+      console.log(`  коронные фразы: ${pkg}/${character} — ${given.lines.length}, раз в ${given.every ?? 4} ответа в среднем`);
+    }
+  }
   for (const pin of config.recommends) {
     console.log(`  рекомендуем из чужой ленты: ${pin.id} (${pin.feed ?? 'без адреса ленты'}), архив ${pin.sha256.slice(0, 12)}…`);
   }

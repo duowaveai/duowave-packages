@@ -13,7 +13,7 @@ candidates — варианты одной фразы (voices.json → reference
 --instruct), --fresh начинает заново.
 
 adopt — выбранный вариант становится голосом персонажа:
-  1. clone-server/imprint.py под каждую установленную модель (omnivoice, cosyvoice3) снимает снимок; образец — весь
+  1. clone-server/imprint.py под каждую установленную модель (omnivoice, cosyvoice3, voxcpm) снимает снимок; образец — весь
      вариант целиком (5–8 с речи), слова образца известны — распознавание не нужно (imprint.py получает их от
      маленького сервера слов здесь же, на 127.0.0.1);
   2. assets/voices/ref.wav — тот самый кусок, с которого сняты снимки; assets/voices/<модель>.pt — снимки;
@@ -46,7 +46,7 @@ REPO = Path(__file__).resolve().parent.parent
 VOICES_FILE = REPO / "voices.json"
 PACKAGES = REPO / "packages"
 WORK = REPO / "work"
-ENGINES = ("omnivoice", "cosyvoice3")
+ENGINES = ("omnivoice", "cosyvoice3", "voxcpm")
 MAX_SAMPLES = 3
 SAMPLE_LIMIT = 64 * 1024
 #: Вокруг длины речи варианта: imprint.py возьмёт образцом ровно весь вариант, а не его кусок (кусок короче минимум на
@@ -128,6 +128,16 @@ def revision(cs: Path, engine: str) -> str:
         ref = runtime / "hf-cache" / "hub" / "models--k2-fsa--OmniVoice" / "refs" / "main"
         if ref.exists():
             return ref.read_text().strip()[:8]
+    if engine == "voxcpm":
+        # Веса — openbmb/VoxCPM2 с HuggingFace (engine_installer шлюза качает их snapshot_download'ом).
+        ref = runtime / "hf-cache" / "hub" / "models--openbmb--VoxCPM2" / "refs" / "main"
+        if ref.exists():
+            return ref.read_text().strip()[:8]
+        requirements = cs / "requirements" / "voxcpm.txt"
+        if requirements.exists():
+            found = re.search(r"weights at ([0-9a-f]{7,40})", requirements.read_text(), re.IGNORECASE)
+            if found:
+                return found.group(1)[:8]
     if engine == "cosyvoice3":
         try:
             head = subprocess.run(
@@ -613,7 +623,7 @@ def main() -> None:
     adopt = sub.add_parser("adopt", help="выбранный вариант → снимки, ref.wav, фразы и манифест пакета")
     adopt.add_argument("character")
     adopt.add_argument("number", type=int, help="номер варианта из candidates")
-    adopt.add_argument("--engines", help="через запятую; по умолчанию все установленные из omnivoice, cosyvoice3")
+    adopt.add_argument("--engines", help="через запятую; по умолчанию все установленные из omnivoice, cosyvoice3, voxcpm")
     adopt.add_argument("--in-package", help="id персонажа внутри пакета, если их там несколько")
     adopt.add_argument("--imprint-device", default="cpu", help="на процессоре снимок берёт вдвое меньше памяти")
     adopt.add_argument("--mem-limit-mb", type=int, default=0, help="потолок памяти imprint.py")

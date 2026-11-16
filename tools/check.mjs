@@ -90,6 +90,7 @@ export const PLATFORMS = ['darwin-arm64', 'darwin-x86_64', 'linux-aarch64', 'lin
 export const ENGINES = {
   omnivoice: { title: 'OmniVoice', diskMb: 4000 },
   cosyvoice3: { title: 'CosyVoice 3', diskMb: 10000 },
+  voxcpm: { title: 'VoxCPM 2', diskMb: 9500 },
 };
 /** Встроенные голоса шлюза (`gateway/src/models/showcase.json`), годные в запасной, и их пол. */
 export const FALLBACK_VOICES = {
@@ -191,6 +192,72 @@ function pinnedRecommendations(list, own) {
     seen.add(key);
     return url ? { feed: url.href, id: item.id, sha256 } : { id: item.id, sha256 };
   });
+}
+
+/** Коронные фразы: строк у одного персонажа, знаков в строке, «раз в сколько ответов» — столько же берёт шлюз. */
+export const PHRASE_LIMITS = { lines: 24, chars: 120, every: 50 };
+
+/**
+ * Коронные фразы персонажей — phrases.json в корне (нет файла — фраз нет), шлюз новее 0.13.0
+ * (src/characters/catchphrases.rs): `{ "<id пакета>": { "<id персонажа>": { "every": 4, "lines": [...] } } }`, строка —
+ * текст (говорится в конце ответа) или `{ "text", "at": "start" | "end" }`. Шлюз говорит одну изредка — в среднем в
+ * одном ответе из `every` (по умолчанию 4), не два ответа подряд и не ту же, что в прошлый раз, — слово в слово, модели
+ * их не передаёт. Фразы — не в пакете, а в ленте: их меняют и убирают без новой версии пакета, закреплённый хеш архива
+ * не меняется. Шлюз берёт фразы только у ленты, из которой пакет поставлен. `characters` — id пакета → id его
+ * персонажей в этой ленте. В catalog.json — поле `phrases` верхнего уровня.
+ */
+export function feedPhrases(characters) {
+  const file = join(ROOT, 'phrases.json');
+  if (!existsSync(file)) return {};
+  let value;
+  try {
+    value = JSON.parse(readFileSync(file, 'utf8'));
+  } catch (error) {
+    throw new Error(`phrases.json: не JSON — ${error.message}`);
+  }
+  if (!isObject(value)) throw new Error('phrases.json: объект «id пакета → id персонажа → фразы»');
+  const out = {};
+  for (const [pkg, byCharacter] of Object.entries(value)) {
+    if (!(pkg in characters)) throw new Error(`phrases.json: «${pkg}» — нет такого пакета в этой ленте`);
+    if (!isObject(byCharacter)) throw new Error(`phrases.json: ${pkg} — объект «id персонажа → фразы»`);
+    for (const [character, given] of Object.entries(byCharacter)) {
+      const at = `phrases.json: ${pkg}.${character}`;
+      if (!characters[pkg].includes(character)) throw new Error(`${at}: в пакете нет такого персонажа (есть: ${characters[pkg].join(', ')})`);
+      if (!isObject(given)) throw new Error(`${at}: объект { every, lines }`);
+      for (const key of Object.keys(given)) {
+        if (!['every', 'lines'].includes(key)) throw new Error(`${at}.${key}: такого поля нет (every, lines)`);
+      }
+      if (given.every !== undefined && !(Number.isInteger(given.every) && given.every >= 1 && given.every <= PHRASE_LIMITS.every)) {
+        throw new Error(`${at}.every: целое от 1 до ${PHRASE_LIMITS.every} — в среднем раз в столько ответов`);
+      }
+      if (!Array.isArray(given.lines) || given.lines.length === 0) throw new Error(`${at}.lines: список фраз`);
+      if (given.lines.length > PHRASE_LIMITS.lines) throw new Error(`${at}.lines: не больше ${PHRASE_LIMITS.lines}`);
+      const seen = new Set();
+      const lines = given.lines.map((line, i) => {
+        const where = `${at}.lines[${i}]`;
+        const item = typeof line === 'string' ? { text: line } : line;
+        if (!isObject(item) || typeof item.text !== 'string') throw new Error(`${where}: текст или { text, at }`);
+        for (const key of Object.keys(item)) {
+          if (!['text', 'at'].includes(key)) throw new Error(`${where}.${key}: такого поля нет (text, at)`);
+        }
+        const text = item.text.trim();
+        if (!text) throw new Error(`${where}: пустая фраза`);
+        if ([...text].length > PHRASE_LIMITS.chars) throw new Error(`${where}: длиннее ${PHRASE_LIMITS.chars} знаков`);
+        if (/[\u0000-\u001f\u007f]/.test(text)) throw new Error(`${where}: в одну строку, без управляющих знаков`);
+        if (item.at !== undefined && !['start', 'end'].includes(item.at)) throw new Error(`${where}.at: start или end`);
+        // После ответа, кончающегося вопросом, колонка слушает без слова-активатора: вопрос — только в начало.
+        if (item.at !== 'start' && /\?[»"')\s]*$/.test(text)) {
+          throw new Error(`${where}: в конце ответа фраза с вопросом — колонка станет ждать ответа; поставьте её в начало ("at": "start")`);
+        }
+        if (seen.has(text)) throw new Error(`${where}: такая фраза уже есть`);
+        seen.add(text);
+        return item.at === 'start' ? { text, at: 'start' } : text;
+      });
+      out[pkg] ??= {};
+      out[pkg][character] = { ...(given.every !== undefined ? { every: given.every } : {}), lines };
+    }
+  }
+  return out;
 }
 
 /** Чей голос может быть у персонажа этой ленты: у своей ленты — и неизвестно чей (`unknown`). */

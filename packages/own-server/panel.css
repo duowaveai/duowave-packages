@@ -1,95 +1,18 @@
-/* VPN: только токены темы; классы с os-, чтобы не задеть пульт. */
+/* VPN: окно — одна карточка до перехода в раздел пульта «VPN»; классы с os-, чтобы не задеть пульт. */
 
-.os-screen {
+.os-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 16px;
 }
 
 .os-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 8px;
 }
 
-.os-servers {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.os-server {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 40px;
-  padding: 8px 12px;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: var(--strong-bg);
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.os-server:disabled {
-  cursor: default;
-}
-
-.os-server.os-chosen {
-  border-color: var(--accent);
-}
-
-.os-server-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.os-now {
-  color: var(--accent);
-}
-
-.os-delay {
-  font-variant-numeric: tabular-nums;
-}
-
-.os-dead,
-.os-server.os-dead .os-delay {
+.os-dead {
   color: var(--sub);
-  text-decoration: line-through;
-}
-
-.os-server.os-dead .os-server-name {
-  color: var(--sub);
-}
-
-.os-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.os-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 10px 12px;
-  border: 1px solid var(--sub);
-  border-radius: 12px;
-  background: var(--bg);
-  color: var(--text);
-  font: inherit;
-}
-
-.os-source {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-  resize: vertical;
 }

@@ -2,8 +2,8 @@
   "recommended": [],
   "unlisted": ["feed"],
   "recommends": [
-    { "id": "jarvis-demo", "sha256": "d3b1c7cbf7bc453132c1d6191caa0b56eba12e22723f91058ce59f0dcb30e1cf" },
-    { "id": "glados-demo", "sha256": "dc7b5d45a29b27e6bb29f64dea979941c26278d75b37ddfe3d3e2ab30b9621b0" },
-    { "id": "rick-demo", "sha256": "d38a05b458b7caa22d89c75edc9893ac3ec94e7b13e674da0859ce9acfa8e601" }
+    { "id": "jarvis-demo", "sha256": "884e6646506e09fb057d5a94693a0d7290cae61606c53bf837977d3cc032658f" },
+    { "id": "glados-demo", "sha256": "c34a752dcd7eb1b21eb7c1f42a4b300a2717e21a4770936263a59fedfe841b13" },
+    { "id": "rick-demo", "sha256": "a53e3c9ccbfa98f8f854d486a9d04fa8af2479d6a57491c2b26e09ae30a916e2" }
   ]
 }
