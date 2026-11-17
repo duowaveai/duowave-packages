@@ -197,6 +197,9 @@ function pinnedRecommendations(list, own) {
       if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) throw new Error(`${at}.feed: только HTTPS`);
     }
     if (!isPackageId(item.id)) throw new Error(`${at}.id: id пакета`);
+    if (url === null && !isRandomPackageId(item.id)) {
+      throw new Error(`${at}.id: строка без адреса — пакет закрытой ленты, его id только случайный («p-» и 12 знаков 0–9 a–f): «${item.id}» говорит, что в ней`);
+    }
     const sha256 = typeof item.sha256 === 'string' ? item.sha256.trim().toLowerCase() : '';
     if (!/^[0-9a-f]{64}$/.test(sha256)) throw new Error(`${at}.sha256: 64 шестнадцатеричных знака — sha256 архива из её catalog.json`);
     for (const key of Object.keys(item)) {
@@ -304,6 +307,13 @@ export const isSemver = (text) => typeof text === 'string' && SEMVER.test(text);
 
 /** id пакета, как его понимает шлюз: строчные латинские, цифры и «-», с буквы, до 32 знаков. */
 export const isPackageId = (id) => typeof id === 'string' && /^[a-z][a-z0-9-]{0,31}$/.test(id) && !id.endsWith('-');
+
+/**
+ * Случайный id пакета закрытой ленты: «p-» и 12 знаков 0–9 a–f. Такую ленту каталог закрепляет без адреса, но сам список
+ * `recommends` открытый — говорящий id рассказал бы, что в ней (владелец 17.11.2026). Новый id:
+ * `node -e "console.log('p-' + require('crypto').randomBytes(6).toString('hex'))"`.
+ */
+export const isRandomPackageId = (id) => typeof id === 'string' && /^p-[0-9a-f]{12}$/.test(id);
 
 /** id персонажа: он же часть папки голоса `c-<пакет>-<персонаж>-<модель>` — только [a-z0-9-]. */
 const isCharacterId = (id) => typeof id === 'string' && /^[a-z][a-z0-9-]{0,31}$/.test(id) && !id.endsWith('-');

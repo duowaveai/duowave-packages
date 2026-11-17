@@ -6,7 +6,8 @@
 //   node tools/pin.mjs <лента> <id>             закрепить: скачать ленту и архив пакета, сверить хеш, положить архив
 //                                               в work/pins/ — посмотреть его, — и вписать строку в feed.config.json
 //   node tools/pin.mjs --no-feed <лента> <id>   закрепить без адреса ленты: в каталоге — только id и хеш архива (шлюз
-//                                               новее 0.11.0), адрес остаётся здесь, в work/pins/feeds.json, для проверки
+//                                               новее 0.11.0), адрес остаётся здесь, в work/pins/feeds.json, для проверки;
+//                                               id такого пакета — только случайный, «p-» и 12 знаков 0–9 a–f
 //   node tools/pin.mjs --remove <лента> <id>    убрать строку
 //   --platform <платформа>                      у приложения со сборками под платформы — чей архив закрепить
 //                                               (linux-aarch64 — колонка); одна сборка — берётся она сама. Шлюз
@@ -23,7 +24,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import { MAX_RECOMMENDS, ROOT, compareSemver, feedConfig, isPackageId } from './check.mjs';
+import { MAX_RECOMMENDS, ROOT, compareSemver, feedConfig, isPackageId, isRandomPackageId } from './check.mjs';
 import { readTarGz } from './tar.mjs';
 
 /** Лента — до 1 МБ, архив — до 16 МБ: столько же берёт шлюз. */
@@ -176,6 +177,10 @@ function describe(archive) {
 
 async function pin(feedArg, id, { noFeed = false, platform = null } = {}) {
   if (!isPackageId(id)) fail(`«${id}» — не id пакета`);
+  // Без адреса — лента закрытая, а список закреплённых открыт: id не должен говорить, что в ней.
+  if (noFeed && !isRandomPackageId(id)) {
+    fail(`«${id}» — говорящий id: пакет закрытой ленты закрепляется только со случайным («p-» и 12 знаков 0–9 a–f) — переименуйте его в той ленте`);
+  }
   const url = feedUrl(feedArg);
   const config = readConfig();
   const addresses = readAddresses();

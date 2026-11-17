@@ -75,8 +75,8 @@ work/                     черновики голосов (варианты, �
 
 ```json
 {
-  "rick-demo": {
-    "rick": {
+  "storyteller": {
+    "teller": {
       "every": 4,
       "lines": [
         "А вот так дела и делаются!",
@@ -291,11 +291,14 @@ dist/
 Адрес ленты, которую не раскрываем (демо, которое показываем лично), в открытый каталог не пишут: `--no-feed`
 закрепляет пакет без него — в строке только `id` и `sha256`. Такая строка — один архив: шлюз (новее 0.11.0) метит его в
 любой добавленной ленте, если хеш тот же; старые шлюзы строку пропускают. Адрес остаётся здесь, в
-`work/pins/feeds.json` (не в git), — по нему `node tools/pin.mjs` проверяет и такие строки.
+`work/pins/feeds.json` (не в git), — по нему `node tools/pin.mjs` проверяет и такие строки. Сам список `recommends`
+открытый, поэтому id пакета закрытой ленты — только случайный: `p-` и 12 знаков 0–9 a–f (новый —
+`node -e "console.log('p-' + require('crypto').randomBytes(6).toString('hex'))"`, в той ленте папка пакета зовётся так
+же). Строку без адреса с говорящим id не впишет `pin.mjs` и не пропустит проверка сборки.
 
 ```bash
 node tools/pin.mjs https://example.org/catalog.json storyteller            # закрепить (или обновить хеш)
-node tools/pin.mjs --no-feed https://example.org/d-…/catalog.json demo    # закрепить без адреса ленты в каталоге
+node tools/pin.mjs --no-feed https://example.org/d-…/catalog.json p-0123456789ab  # без адреса ленты в каталоге
 node tools/pin.mjs                                                         # закреплённые: тот ли архив сейчас
 node tools/pin.mjs --remove https://example.org/catalog.json storyteller   # убрать
 ```
