@@ -23,7 +23,7 @@ TREE=$(mktemp -d)
 git -C "$ROOT" archive HEAD | tar -x -C "$TREE"
 node "$CHECK" --dir "$TREE"
 node "$TREE/tools/build.mjs" --check
-rsync -a --delete --exclude /.git "$TREE/" "$PUBLIC/"
+rsync -a --checksum --delete --exclude /.git "$TREE/" "$PUBLIC/"   # by content: a same-size file with the same second would be skipped
 cd "$PUBLIC"
 git add -A
 if git diff --cached --quiet; then

@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "agent",
   "id": "factory-droid",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "api": "^1",
   "title": "Factory Droid",
   "description": "Агент для кода от Factory: сам читает и правит файлы рабочей папки и запускает команды. DuoWave запускает Droid, который вы поставили и в который вошли сами, — по Agent Client Protocol.",
@@ -15,6 +15,7 @@
   },
   "runs": ["pc"],
   "license": "Apache-2.0 (карточка); программа Droid — по условиям Factory",
+  "icon": "avatar.webp",
   "site": "https://factory.ai",
   "terms": "https://factory.com/legal/terms-individual",
   "program": {

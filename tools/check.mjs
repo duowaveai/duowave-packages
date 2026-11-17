@@ -596,30 +596,30 @@ export function checkPackage(dir) {
     errors.push('contributes: объект');
   }
 
+  // ---- значок приложения, плагина или карточки агента: картинка в assets/; сборка кладёт её превью — MagicPlace, ярлык стола, окно «Приложения» ----
+  if (manifest.icon !== undefined) {
+    if (kind !== 'app' && kind !== 'plugin' && kind !== 'agent') errors.push('icon: значок — у приложения, плагина и карточки агента; у персонажа картинка — его avatar');
+    else {
+      const icon = asset(manifest.icon, 'icon');
+      if (icon) {
+        const buf = readAsset(icon);
+        const info = imageInfo(buf);
+        if (!info) errors.push('icon: только WebP или PNG');
+        else {
+          if (buf.length > LIMITS.avatarBytes) errors.push(`icon: ${(buf.length / 1024).toFixed(0)} КБ — не больше ${LIMITS.avatarBytes / 1024} КБ`);
+          if (info.width !== info.height) errors.push(`icon: картинка квадратная (сейчас ${info.width}×${info.height})`);
+          else if (info.width < 128 || info.width > 1024) errors.push(`icon: от 128 до 1024 точек (сейчас ${info.width})`);
+        }
+        result.icon = icon;
+      }
+    }
+  }
+
   // ---- плагин и приложение: код ----
   if (code) {
     if (isSemver(manifest.minGateway) && compareSemver(manifest.minGateway, codeMinGateway(manifest)) < 0) {
       warnings.push(`minGateway ${manifest.minGateway}: такой код шлюзы раньше ${codeMinGateway(manifest)} не запустят — в ленте будет ${codeMinGateway(manifest)}`);
     }
-    // ---- значок приложения или плагина: картинка в assets/; сборка кладёт её превью — MagicPlace и ярлык стола ----
-    if (manifest.icon !== undefined) {
-      if (kind !== 'app' && kind !== 'plugin') errors.push('icon: значок — у приложения и плагина; у персонажа картинка — его avatar');
-      else {
-        const icon = asset(manifest.icon, 'icon');
-        if (icon) {
-          const buf = readAsset(icon);
-          const info = imageInfo(buf);
-          if (!info) errors.push('icon: только WebP или PNG');
-          else {
-            if (buf.length > LIMITS.avatarBytes) errors.push(`icon: ${(buf.length / 1024).toFixed(0)} КБ — не больше ${LIMITS.avatarBytes / 1024} КБ`);
-            if (info.width !== info.height) errors.push(`icon: картинка квадратная (сейчас ${info.width}×${info.height})`);
-            else if (info.width < 128 || info.width > 1024) errors.push(`icon: от 128 до 1024 точек (сейчас ${info.width})`);
-          }
-          result.icon = icon;
-        }
-      }
-    }
-
     checkCode(manifest, kind, files, result, foreign);
     return result;
   }

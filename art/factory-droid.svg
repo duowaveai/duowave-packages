@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Factory Droid — робот-помощник</title>
+  <!-- Свой знак, не значок Factory: голова дроида с визором и антенной. Тёплый оранжевый тон. Сплошные заливки. -->
+  <rect width="512" height="512" fill="#EA6F3C"/>
+  <circle cx="256" cy="290" r="230" fill="#FFFFFF" fill-opacity="0.08"/>
+  <circle cx="256" cy="290" r="160" fill="#FFFFFF" fill-opacity="0.06"/>
+
+  <!-- антенна -->
+  <rect x="244" y="82" width="24" height="64" rx="12" ry="12" fill="#FFE2D2"/>
+  <circle cx="256" cy="80" r="26" fill="#FFFFFF"/>
+  <!-- уши -->
+  <rect x="66" y="238" width="40" height="110" rx="20" ry="20" fill="#FFD0B8"/>
+  <rect x="406" y="238" width="40" height="110" rx="20" ry="20" fill="#FFD0B8"/>
+  <!-- голова: тень, корпус -->
+  <rect x="100" y="166" width="312" height="262" rx="70" ry="70" fill="#8F3410" fill-opacity="0.35"/>
+  <rect x="100" y="146" width="312" height="262" rx="70" ry="70" fill="#FFFFFF"/>
+  <rect x="100" y="360" width="312" height="48" rx="24" ry="24" fill="#FFE2D2"/>
+  <!-- визор и глаза -->
+  <rect x="140" y="206" width="232" height="108" rx="54" ry="54" fill="#3A1B10"/>
+  <circle cx="200" cy="260" r="26" fill="#FFB27F"/>
+  <circle cx="312" cy="260" r="26" fill="#FFB27F"/>
+  <!-- рот-решётка -->
+  <rect x="204" y="344" width="104" height="12" rx="6" ry="6" fill="#EA6F3C"/>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Codex CLI — окно терминала и приглашение к вводу</title>
+  <!-- Свой знак, не значок OpenAI: окно терминала с приглашением «>_». Зелёно-бирюзовый тон. Сплошные заливки:
+       ImageMagick (MSVG) не рисует градиенты; у обводок явное stroke-opacity="1". -->
+  <rect width="512" height="512" fill="#139A82"/>
+  <circle cx="256" cy="280" r="230" fill="#FFFFFF" fill-opacity="0.08"/>
+  <circle cx="256" cy="280" r="160" fill="#FFFFFF" fill-opacity="0.06"/>
+
+  <!-- окно: тень, корпус, шапка -->
+  <rect x="84" y="136" width="344" height="268" rx="36" ry="36" fill="#0B4D43" fill-opacity="0.45"/>
+  <rect x="84" y="116" width="344" height="268" rx="36" ry="36" fill="#F4FFFC"/>
+  <rect x="84" y="116" width="344" height="62" rx="36" ry="36" fill="#BFEFE3"/>
+  <rect x="84" y="148" width="344" height="30" fill="#BFEFE3"/>
+  <circle cx="132" cy="147" r="10" fill="#139A82"/>
+  <circle cx="166" cy="147" r="10" fill="#4DBFA8"/>
+  <circle cx="200" cy="147" r="10" fill="#8AD9C7"/>
+
+  <!-- приглашение: шеврон и курсор -->
+  <path d="M148 232 L214 280 L148 328" fill="none" stroke="#0E6F5E" stroke-opacity="1" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="244" y="316" width="104" height="30" rx="15" ry="15" fill="#139A82"/>
+  <!-- искра: помощник думает -->
+  <path d="M372 218 L382 244 L408 254 L382 264 L372 290 L362 264 L336 254 L362 244 Z" fill="#139A82"/>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>OpenCode — открытые скобки кода</title>
+  <!-- Свой знак, не значок OpenCode: угловые скобки со слэшем — открытый код. Синий тон. Сплошные заливки;
+       у обводок явное stroke-opacity="1". -->
+  <rect width="512" height="512" fill="#3E6FE0"/>
+  <circle cx="256" cy="270" r="230" fill="#FFFFFF" fill-opacity="0.08"/>
+  <circle cx="256" cy="270" r="160" fill="#FFFFFF" fill-opacity="0.06"/>
+
+  <!-- скобки: тень на полтона ниже, затем белые -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="44" stroke-opacity="1">
+    <path d="M178 214 L96 296 L178 378" stroke="#1F3A8F" stroke-opacity="0.35"/>
+    <path d="M334 214 L416 296 L334 378" stroke="#1F3A8F" stroke-opacity="0.35"/>
+    <path d="M178 186 L96 268 L178 350" stroke="#FFFFFF"/>
+    <path d="M334 186 L416 268 L334 350" stroke="#FFFFFF"/>
+    <path d="M286 150 L226 386" stroke="#C7D8FF"/>
+  </g>
+  <!-- открытая «дверь»: точка-курсор -->
+  <circle cx="256" cy="426" r="16" fill="#C7D8FF"/>
+</svg>
