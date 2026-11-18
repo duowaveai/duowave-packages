@@ -177,6 +177,8 @@
           "uniqueItems": true,
           "items": { "enum": ["pc", "station", "stationServer"] }
         },
+        "prefer": { "enum": ["home", "here"] },
+        "place": { "enum": ["gateway", "computer", "station", "network"] },
         "minGateway": { "$ref": "#/$defs/semver" },
         "url": {
           "allOf": [{ "$ref": "#/$defs/relative" }, { "type": "string", "pattern": "\\.vgp$" }],

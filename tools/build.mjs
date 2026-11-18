@@ -250,6 +250,15 @@ function whatOf(r) {
  * (у приложения, что объявляет виджет только в коде своего окна, как «Лента», — по `panel.js`); навык — фразы для
  * колонки или инструменты «Мозга»; окно — свой раздел пульта; расписание. У персонажа и темы лиц нет.
  */
+/** Место пакета в доме: плагин в сети (MCP) — «network», плагин — «gateway» (в центре), приложение только для
+ * колонки — «station», иначе «computer». Персонажу и теме места нет. */
+function placeOf(m, r) {
+  const kind = m.kind ?? 'plugin';
+  if (kind === 'plugin') return r.runtime === 'mcp' ? 'network' : 'gateway';
+  if (kind === 'app') return Array.isArray(m.runs) && m.runs.length > 0 && !m.runs.includes('pc') ? 'station' : 'computer';
+  return undefined;
+}
+
 function facesOf(r) {
   const m = r.manifest;
   if (!r.code) return [];
@@ -499,6 +508,11 @@ function main() {
       ...(m.locales && typeof m.locales === 'object' ? { locales: catalogLocales(m.locales, downloads) } : {}),
       api: m.api,
       runs: m.runs,
+      // Где работает в доме (docs/plans/home-and-devices.md шлюза, этап 5б): «prefer: home» — у Турбо дома, когда он
+      // есть, и место пакета словами витрины — «на колонке», «на компьютере», «в сети», «в центре». MagicPlace
+      // подписывает карточку до установки.
+      ...(m.prefer ? { prefer: m.prefer } : {}),
+      place: placeOf(m, r),
       minGateway,
       url: common.url,
       sha256: common.sha256,
