@@ -1,5 +1,5 @@
 {
-  "recommended": [],
+  "recommended": ["own-server", "airplay"],
   "unlisted": ["feed"],
   "recommends": [
     { "id": "p-641639aa6d15", "sha256": "a85e6a54467dccb92a9d03901537e08e8755599a142db288cc51eaa63c66cdf4" },
