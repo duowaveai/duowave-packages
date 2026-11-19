@@ -1,15 +1,16 @@
 {
-  "recommended": ["own-server", "airplay"],
+  "recommended": ["own-server","airplay"],
   "unlisted": ["feed"],
   "recommends": [
     { "id": "p-641639aa6d15", "sha256": "a85e6a54467dccb92a9d03901537e08e8755599a142db288cc51eaa63c66cdf4" },
     { "id": "p-0144c42d0a70", "sha256": "32d5a9c456e4d09378c8bef877d1d4b60f23a7aca29484cd1b47f7c03a3f8681" },
     { "id": "p-322b8b7c3077", "sha256": "68d307a84027a058c4a37f96c982e209100b68b4a899bbbf7960c8005c498643" },
     { "id": "p-6e99916617fc", "sha256": "e5eff30772c57414b3bbcb2d6678bca17b4e1cb28cc62093617e2ae9b74ac0cf" },
-    { "id": "p-379c5af66219", "sha256": "b7c8d1a88175538ba51e3658a3c50d953e4c19f79c48485d772db98b959d5928" },
+    { "id": "p-379c5af66219", "sha256": "e278e9a2937e7ad216c1a5882969194ef70adcb1e42680d49070c9f2b28c27e7" },
     { "id": "p-d98f9b576ab0", "sha256": "07e009dd69c6a1d51ac45221221942dbceafaf452b0a710f1f88ca7d819bf4fb" },
     { "id": "p-50c500550265", "sha256": "bf5b8620d68c6ace9981dd4b764709518c079f1903227cc30a359e82d2977769" },
     { "id": "p-592d705c653b", "sha256": "99712ccce9e82ab18a747cca683e92b099da0a66af1412832e29cc3e36e1054c" },
-    { "id": "p-1cbcba0f5dc1", "sha256": "f3616fff25bd7220531f6a13833941e7a180b14921a1fc3d5a607f4015d80fb2" }
+    { "id": "p-1cbcba0f5dc1", "sha256": "f3616fff25bd7220531f6a13833941e7a180b14921a1fc3d5a607f4015d80fb2" },
+    { "id": "p-61483aafb47f", "sha256": "2a672ff1b618bd64b1491ff464fa9297866e470c3564408d87413e1678448502" }
   ]
 }
