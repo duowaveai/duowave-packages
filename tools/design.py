@@ -4,9 +4,9 @@
 Запускается окружением OmniVoice из clone-server шлюза — там torch, omnivoice и numpy (свои зависимости не нужны):
 
     CS=../voice-gateway-server/clone-server
-    $CS/runtime/omnivoice/env/bin/python tools/design.py candidates arthur          # 10 вариантов фразы образца
-    open work/arthur/index.html                                                     # послушать, выбрать номер
-    $CS/runtime/omnivoice/env/bin/python tools/design.py adopt arthur 7             # вариант 7 → пакет
+    $CS/runtime/omnivoice/env/bin/python tools/design.py candidates p-6dbdfc39330b  # 10 вариантов фразы образца («Артур»)
+    open work/p-6dbdfc39330b/index.html                                             # послушать, выбрать номер
+    $CS/runtime/omnivoice/env/bin/python tools/design.py adopt p-6dbdfc39330b 7     # вариант 7 → пакет
 
 candidates — варианты одной фразы (voices.json → reference) по описанию голоса (instruct) в work/<id>/candidates/,
 с номером «зерна» у каждого, чтобы вариант можно было повторить. Повторный запуск добавляет варианты (можно с другим

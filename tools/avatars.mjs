@@ -2,7 +2,7 @@
 // Аватары: art/<id>.svg → packages/<id>/assets/avatar.webp (512×512, WebP без потерь).
 //
 //   node tools/avatars.mjs            все рисунки из art/
-//   node tools/avatars.mjs arthur     только этот
+//   node tools/avatars.mjs p-6dbdfc39330b     только этот («Артур»)
 //
 // SVG — исходник, в пакет он не попадает (SVG в пакетах запрещён: скрипт в пульте). Рисует ImageMagick (`magick`),
 // своим встроенным рендером MSVG: у обводок нужно явное stroke-opacity="1", иначе он их не рисует.

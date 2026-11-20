@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "kind": "agent",
-  "id": "codex",
+  "id": "p-084018193fe5",
   "version": "1.0.1",
   "api": "^1",
   "title": "Codex CLI",

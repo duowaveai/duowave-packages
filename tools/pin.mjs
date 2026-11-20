@@ -8,15 +8,17 @@
 //   node tools/pin.mjs --no-feed <лента> <id>   закрепить без адреса ленты: в каталоге — только id и хеш архива (шлюз
 //                                               новее 0.11.0), адрес остаётся здесь, в work/pins/feeds.json, для проверки;
 //                                               id такого пакета — только случайный, «p-» и 12 знаков 0–9 a–f
-//   node tools/pin.mjs --remove <лента> <id>    убрать строку
+//   node tools/pin.mjs --remove <лента> <id>    убрать строки пакета (у сборок под платформы — все)
 //   --platform <платформа>                      у приложения со сборками под платформы — чей архив закрепить
-//                                               (linux-aarch64 — колонка); одна сборка — берётся она сама. Шлюз
-//                                               ставит архив своей платформы, только если закреплён именно он
+//                                               (linux-aarch64 — колонка, darwin-arm64 — Mac); одна сборка — берётся
+//                                               она сама. Шлюз ставит архив своей платформы, только если закреплён
+//                                               именно он: каждая платформа — своей строкой, своей командой
 //
 // <лента> — адрес её catalog.json: HTTPS (HTTP — только localhost и 127.0.0.1). Пакет с кодом (плагин, приложение
 // одним архивом) шлюз из чужой ленты ставит, только когда подписанный каталог закрепил этот архив: закрепляйте код,
-// только посмотрев его (архив кладётся в work/pins/). У приложения со сборками под платформы закрепляется архив одной
-// платформы (`--platform`): шлюз другой платформы его не поставит. Закрепили — каталог публикуется как обычно
+// только посмотрев его (архив кладётся в work/pins/). У приложения со сборками под платформы каждая команда закрепляет
+// архив одной платформы (`--platform`) своей строкой: строки других платформ этой же версии остаются, строки прежних
+// версий (их архивов в ленте уже нет) уходят. Закрепили — каталог публикуется как обычно
 // (tools/publish.sh); выпуск шлюза не нужен (код из чужих лент ставят шлюзы с `code_allowed`, старые его не ставят).
 // Зависимостей нет: Node 18+.
 
@@ -215,11 +217,20 @@ async function pin(feedArg, id, { noFeed = false, platform = null } = {}) {
   const saved = join(PINS_DIR, `${id}-${entry.version}.vgp`);
   writeFileSync(saved, archive);
 
-  // Тот же пакет той же ленты — с адресом или без: строка заменяется (так же и меняют одно на другое).
-  const known = pins.findIndex((item) => item?.id === id && (item.feed === undefined || item.feed === url.href));
+  // Тот же пакет той же ленты — с адресом или без. Одна сборка: строка заменяется (так же меняют одно на другое).
+  // Сборки под платформы: остаются строки архивов других платформ, что есть в ленте сейчас; эта платформа и прежние
+  // версии (их архивов в ленте нет) заменяются этой строкой.
+  const same = (item) => item?.id === id && (item.feed === undefined || item.feed === url.href);
+  const others = new Set(
+    platforms.filter((name) => name !== (platform ?? platforms[0])).map((name) => String(entry.platforms[name]?.sha256 ?? '').toLowerCase()),
+  );
+  const keep = (item) => !same(item) || (platforms.length > 0 && others.has(item.sha256) && item.sha256 !== sha256);
   const line = noFeed ? { id, sha256 } : { feed: url.href, id, sha256 };
-  const was = known >= 0 ? pins[known] : null;
-  const next = known >= 0 ? pins.map((item, i) => (i === known ? line : item)) : [...pins, line];
+  const was = pins.find((item) => same(item) && !keep(item)) ?? null;
+  const dropped = pins.filter((item) => !keep(item) && item.sha256 !== sha256);
+  const at = pins.findIndex((item) => !keep(item));
+  const kept = pins.filter(keep);
+  const next = at >= 0 ? [...kept.slice(0, at), line, ...kept.slice(at)] : [...pins, line];
   if (next.length > MAX_RECOMMENDS) fail(`recommends — не больше ${MAX_RECOMMENDS}`);
   writeConfig({ ...config, recommends: next });
   if (noFeed) writeAddresses({ ...addresses, [id]: url.href });
@@ -236,8 +247,12 @@ async function pin(feedArg, id, { noFeed = false, platform = null } = {}) {
   if (coded) console.log('  это код: шлюзы с `code_allowed` поставят его из чужой ленты — закрепляйте, только прочитав его');
   if (noFeed) console.log(`  в каталоге — без адреса ленты: только id и хеш (шлюз новее 0.11.0); адрес — в ${relative(process.cwd(), ADDRESSES)}`);
   if (!was) console.log('✓ вписан в feed.config.json (recommends)');
-  else if (was.sha256 === sha256) console.log('✓ уже был вписан с этим же архивом');
-  else console.log(`✓ хеш обновлён: был ${short(was.sha256)}`);
+  else if (was.sha256 === sha256 && dropped.length === 0) console.log('✓ уже был вписан с этим же архивом');
+  else console.log(`✓ хеш обновлён: был ${dropped.map((item) => short(item.sha256)).join(', ') || short(was.sha256)}`);
+  if (platforms.length > 1) {
+    const pinned = platforms.filter((name) => next.some((item) => same(item) && item.sha256 === String(entry.platforms[name]?.sha256 ?? '').toLowerCase()));
+    console.log(`  закреплены сборки: ${pinned.join(', ')}${pinned.length < platforms.length ? ` — ещё нет: ${platforms.filter((name) => !pinned.includes(name)).join(', ')}` : ''}`);
+  }
   console.log('Дальше — опубликовать каталог (tools/publish.sh): шлюзы подхватят при следующем чтении ленты.');
 }
 

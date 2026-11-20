@@ -8,7 +8,7 @@ import { h } from "preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { Action, Note, askRights, definePlugin, icons, rights, t as translate, useApi, usePanelState, useT } from "@duowave/panel-sdk";
 
-const ID = "own-server";
+const ID = "p-2a4594f148e9"; // id пакета — случайный (README, «Правила каталога»)
 /** The panel's section of the VPN: the switch, locations, settings, subscriptions. */
 const SCREEN = "egress";
 

@@ -2,7 +2,7 @@
   "$comment": "Как делаются голоса персонажей (tools/design.py). instruct — описание голоса для OmniVoice (voice design): пол male|female, возраст child|teenager|young adult|middle-aged|elderly, высота very low pitch … very high pitch, whisper, акцент (american accent, british accent, russian accent …), через запятую. Без пола модель выбирает его сама. reference — фраза образца: 5–8 секунд вслух, без пауз длиннее 0,7 с; из неё снимаются голоса под модели. samples — фразы-пробники (до трёх). adopted заполняет design.py, когда вариант выбран: так видно, из чего сделан голос.",
   "language": "ru",
   "characters": {
-    "arthur": {
+    "p-6dbdfc39330b": {
       "instruct": "male, middle-aged, low pitch",
       "alternatives": ["male, elderly, moderate pitch", "male, middle-aged, low pitch, british accent"],
       "note": "Ровный, бархатный, неторопливый. Британский акцент — попробовать, но русская речь должна остаться чистой.",
@@ -13,7 +13,7 @@
         "Будильник заведён на семь. Разбужу вас, как всегда, деликатно."
       ]
     },
-    "kovcheg": {
+    "p-c6f8c56befc2": {
       "instruct": "female, middle-aged, low pitch",
       "alternatives": ["female, young adult, moderate pitch", "female, middle-aged, moderate pitch"],
       "note": "Ровный, очень спокойный, без эмоций — от этого чуть зловещий. Не шёпот.",
@@ -24,7 +24,7 @@
         "Не волнуйтесь, экипаж. Я присматриваю за всем."
       ]
     },
-    "palych": {
+    "p-401d9b3a0ef6": {
       "instruct": "male, elderly, low pitch",
       "alternatives": ["male, elderly, moderate pitch", "male, elderly, very low pitch"],
       "note": "Старческий, с хрипотцой, ворчливый, но тёплый.",
@@ -35,7 +35,7 @@
         "Эх, в наше время будильников не было. Петух был!"
       ]
     },
-    "bublik": {
+    "p-e1d3a85be838": {
       "instruct": "young adult, high pitch",
       "alternatives": [
         "male, young adult, moderate pitch",
@@ -50,7 +50,7 @@
         "Погода? Для сна — идеальная. Для всего остального — не знаю."
       ]
     },
-    "jarvis": {
+    "p-22e8efacdb2b": {
       "instruct": "male, middle-aged, low pitch",
       "alternatives": ["male, middle-aged, very low pitch", "male, young adult, low pitch"],
       "note": "Русский Джарвис: спокойный, техничный баритон ИИ-дворецкого. Основа — middle-aged/low; very low пробуем ради глубины, young adult — свежий техно-вариант.",

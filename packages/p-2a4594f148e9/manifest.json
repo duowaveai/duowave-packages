@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "app",
   "runtime": "process",
-  "id": "own-server",
+  "id": "p-2a4594f148e9",
   "version": "0.1.4",
   "title": "VPN",
   "description": "Свои серверы для DuoWave: подписка или ссылки (VLESS с Reality и XHTTP, Hysteria 2, TUIC, Shadowsocks 2022, Trojan, AnyTLS, WireGuard). Шлюз сам решает, кому идти через сервер, а кому напрямую: модели, слух и голос, разговор колонки, приложения — каждый своей строкой. Только для колонки.",

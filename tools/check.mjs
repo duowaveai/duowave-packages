@@ -2,7 +2,7 @@
 // Проверка пакетов каталога: всё, что сборка обещает шлюзу, проверяется здесь, до упаковки.
 //
 //   node tools/check.mjs                  все пакеты из packages/
-//   node tools/check.mjs packages/arthur  только эти
+//   node tools/check.mjs packages/p-6dbdfc39330b  только эти («Артур»)
 //
 // Сборка (tools/build.mjs) вызывает ту же проверку и без неё ничего не собирает. Правила — docs/plans/characters.md
 // шлюза, разделы 1, 2, 8 и «Контракт API»; где шлюз строже или мягче — сказано рядом.
@@ -134,10 +134,13 @@ export const VOICE_ORIGINS = ['synthetic', 'consent'];
  *   метит пакет «рекомендуем» и «проверен», только если человек этот источник добавил и хеш тот же: поменяли архив —
  *   пометки нет. В catalog.json — поле `recommends` верхнего уровня. Без `feed` (шлюз новее 0.11.0) — один архив, в
  *   какой бы добавленной ленте он ни был: адрес ленты, которую не раскрываем (демо), в открытый каталог не попадает.
+ * - `pinnedCode` — лента, которую главная называет проверенной (store.duowave.app), несёт код без подписи: шлюз ставит
+ *   его, только когда подписанная главная закрепила этот архив по хешу (`recommends`, у приложения со сборками — архив
+ *   своей платформы). Отметка «проверено» у пакетов ленты остаётся — в отличие от `own`.
  */
 export function feedConfig() {
   const file = join(ROOT, 'feed.config.json');
-  if (!existsSync(file)) return { own: false, hidden: [], unlisted: [], recommended: [], recommends: [] };
+  if (!existsSync(file)) return { own: false, pinnedCode: false, hidden: [], unlisted: [], recommended: [], recommends: [] };
   let value;
   try {
     value = JSON.parse(readFileSync(file, 'utf8'));
@@ -147,6 +150,10 @@ export function feedConfig() {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('feed.config.json: нужен объект');
   const own = value.own ?? false;
   if (typeof own !== 'boolean') throw new Error('feed.config.json: own — true или false');
+  // Лента, которую главная называет проверенной (store), а код в ней — только закреплённый главной по хешу архива.
+  const pinnedCode = value.pinnedCode ?? false;
+  if (typeof pinnedCode !== 'boolean') throw new Error('feed.config.json: pinnedCode — true или false');
+  if (pinnedCode && own) throw new Error('feed.config.json: pinnedCode — для ленты, которую называет главная; своя лента (own) несёт код и так');
   const hidden = value.hidden ?? [];
   if (!Array.isArray(hidden) || hidden.some((id) => !isPackageId(id))) {
     throw new Error('feed.config.json: hidden — список id пакетов');
@@ -166,7 +173,7 @@ export function feedConfig() {
     if (twice.length) throw new Error(`feed.config.json: ${twice.join(', ')} — и в unlisted, и в ${name}`);
   }
   const recommends = pinnedRecommendations(value.recommends ?? [], own);
-  return { own, hidden: [...new Set(hidden)], unlisted: [...new Set(unlisted)], recommended: [...new Set(recommended)], recommends };
+  return { own, pinnedCode, hidden: [...new Set(hidden)], unlisted: [...new Set(unlisted)], recommended: [...new Set(recommended)], recommends };
 }
 
 /** Сколько пакетов чужих лент каталог может рекомендовать: столько же читает шлюз. */
@@ -175,7 +182,8 @@ export const MAX_RECOMMENDS = 32;
 /**
  * `recommends` из feed.config.json: `{ feed, id, sha256 }` — адрес чужой ленты (HTTPS; HTTP — только localhost и
  * 127.0.0.1), id пакета и sha256 архива, который мы посмотрели; `feed` можно не писать — тогда это один архив, где бы он
- * ни был. Своя лента (`own`) рекомендовать чужое не может.
+ * ни был. Строка — один архив: у приложения со сборками под платформы строк столько, сколько закреплённых платформ.
+ * Своя лента (`own`) рекомендовать чужое не может.
  */
 function pinnedRecommendations(list, own) {
   if (!Array.isArray(list)) throw new Error('feed.config.json: recommends — список { feed, id, sha256 }');
@@ -205,8 +213,10 @@ function pinnedRecommendations(list, own) {
     for (const key of Object.keys(item)) {
       if (!['feed', 'id', 'sha256'].includes(key)) throw new Error(`${at}.${key}: такого поля нет (feed, id, sha256)`);
     }
-    const key = `${url?.href ?? '—'} ${item.id}`;
-    if (seen.has(key)) throw new Error(`${at}: ${url ? 'этот пакет этой ленты' : 'этот пакет без адреса'} уже есть`);
+    // Строка — один архив: у приложения со сборками под платформы — по строке на архив каждой платформы (шлюз ставит
+    // свою платформу, если закреплён хоть один из них: recommends.iter().any в catalog.rs). Повтор — тот же архив.
+    const key = `${url?.href ?? '—'} ${item.id} ${sha256}`;
+    if (seen.has(key)) throw new Error(`${at}: ${url ? 'этот архив этого пакета этой ленты' : 'этот архив этого пакета без адреса'} уже есть`);
     seen.add(key);
     return url ? { feed: url.href, id: item.id, sha256 } : { id: item.id, sha256 };
   });
@@ -309,9 +319,10 @@ export const isSemver = (text) => typeof text === 'string' && SEMVER.test(text);
 export const isPackageId = (id) => typeof id === 'string' && /^[a-z][a-z0-9-]{0,31}$/.test(id) && !id.endsWith('-');
 
 /**
- * Случайный id пакета закрытой ленты: «p-» и 12 знаков 0–9 a–f. Такую ленту каталог закрепляет без адреса, но сам список
- * `recommends` открытый — говорящий id рассказал бы, что в ней (владелец 17.11.2026). Новый id:
- * `node -e "console.log('p-' + require('crypto').randomBytes(6).toString('hex'))"`.
+ * Случайный id пакета: «p-» и 12 знаков 0–9 a–f. Такой id у каждого пакета, открытого и закрытого (владелец
+ * 20.11.2026; старые читаемые переименованы в тот же день): id ничего о пакете не говорит, имя — в `title`. Сначала
+ * правило было только у закрытой ленты (17.11): её каталог закрепляет без адреса, а список `recommends` открытый —
+ * говорящий id рассказал бы, что в ней. Новый id: `node -e "console.log('p-' + require('crypto').randomBytes(6).toString('hex'))"`.
  */
 export const isRandomPackageId = (id) => typeof id === 'string' && /^p-[0-9a-f]{12}$/.test(id);
 
@@ -565,6 +576,12 @@ export function checkPackage(dir) {
   else if (!CATALOG_KINDS.includes(kind)) errors.push(`kind «${kind}»: такие пакеты каталог не принимает — есть ${CATALOG_KINDS.join(', ')}`);
   if (!isPackageId(manifest.id)) errors.push('id: строчные латинские буквы, цифры и «-», с буквы, до 32 знаков');
   else if (manifest.id !== folder) errors.push(`id «${manifest.id}» не совпадает с папкой packages/${folder}`);
+  else if (!isRandomPackageId(manifest.id)) {
+    errors.push(
+      `id «${manifest.id}»: id пакета случайный — «p-» и 12 знаков 0–9 a–f, ничего о пакете не говорит; имя — в title. ` +
+        "Новый id: node -e \"console.log('p-' + require('crypto').randomBytes(6).toString('hex'))\" (папка packages/<id> — так же)",
+    );
+  }
   if (!isSemver(manifest.version)) errors.push('version: номер версии вида 1.2.0 (semver)');
   if (code) {
     // Код работает с Host API шлюза: приложение под Host API 1 шлюз не включит (manifest.rs).

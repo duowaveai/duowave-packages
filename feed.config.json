@@ -1,6 +1,6 @@
 {
-  "recommended": ["own-server","airplay"],
-  "unlisted": ["feed"],
+  "recommended": ["p-2a4594f148e9","p-4db294c19645"],
+  "unlisted": ["p-8711b037a2db"],
   "recommends": [
     { "id": "p-641639aa6d15", "sha256": "a85e6a54467dccb92a9d03901537e08e8755599a142db288cc51eaa63c66cdf4" },
     { "id": "p-0144c42d0a70", "sha256": "32d5a9c456e4d09378c8bef877d1d4b60f23a7aca29484cd1b47f7c03a3f8681" },

@@ -15,7 +15,7 @@ import { h } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Switch, ask, askRights, definePlugin, icons, openMedia, record, rights, share, t, useApi, useLocale, useMedia, usePanelState, useTask } from "@duowave/panel-sdk";
 
-const ID = "feed";
+const ID = "p-8711b037a2db"; // id пакета — случайный (README, «Правила каталога»)
 
 // Тексты окна на языке пульта (docs/plans/i18n.md): берутся при рисовании — tx(ключ, параметры); useLocale в корне
 // окна перерисовывает их, когда человек сменил язык. Чего нет на языке пульта — по-английски, затем по-русски. Не здесь

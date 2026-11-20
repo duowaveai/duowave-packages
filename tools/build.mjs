@@ -392,8 +392,9 @@ function main() {
   const skipped = [];
   const included = results.filter((r) => {
     if (!SIGNED_KINDS.includes(r.kind)) return true;
-    if (config.own && r.kind !== 'agent') return true;
+    if ((config.own || config.pinnedCode) && r.kind !== 'agent') return true;
     if (config.own) skipped.push({ r, why: 'своя лента: из своих источников шлюз не ставит карточки агентов' });
+    else if (config.pinnedCode && !args.signed) skipped.push({ r, why: 'карточка агента идёт только в подписанную ленту' });
     else if (!args.signed) {
       const what = r.kind === 'agent' ? 'карточка агента' : 'код';
       skipped.push({ r, why: `${what} идёт только в подписанную ленту (сборка с --signed; подпись ставит CI ключом каталога)` });
