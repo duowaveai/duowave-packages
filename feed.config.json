@@ -11,6 +11,8 @@
     { "id": "p-50c500550265", "sha256": "bf5b8620d68c6ace9981dd4b764709518c079f1903227cc30a359e82d2977769" },
     { "id": "p-592d705c653b", "sha256": "99712ccce9e82ab18a747cca683e92b099da0a66af1412832e29cc3e36e1054c" },
     { "id": "p-1cbcba0f5dc1", "sha256": "f3616fff25bd7220531f6a13833941e7a180b14921a1fc3d5a607f4015d80fb2" },
-    { "id": "p-61483aafb47f", "sha256": "cfeea73565a05d72fe0d47935087b350a2037c600c30aa572f71051e529bc37f" }
+    { "id": "p-61483aafb47f", "sha256": "cfeea73565a05d72fe0d47935087b350a2037c600c30aa572f71051e529bc37f" },
+    { "feed": "https://store.duowave.app/catalog.json", "id": "p-045b69c5df81", "sha256": "baee5898a89efffdd66a723ec94e67f1f224e88b88d98dd3e03cd4dcab26abcf" },
+    { "feed": "https://store.duowave.app/catalog.json", "id": "p-045b69c5df81", "sha256": "d7bf5e57dde979eebc20c65915383062cb5d35f72d259da9cb4cc0646ee25812" }
   ]
 }

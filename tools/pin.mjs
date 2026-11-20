@@ -214,7 +214,8 @@ async function pin(feedArg, id, { noFeed = false, platform = null } = {}) {
   const inside = describe(archive);
   if (inside.manifest.id !== id) fail(`в архиве — пакет «${inside.manifest.id}», а не «${id}»`);
   mkdirSync(PINS_DIR, { recursive: true });
-  const saved = join(PINS_DIR, `${id}-${entry.version}.vgp`);
+  // Each platform's archive under its own name: pinning one does not overwrite another's copy.
+  const saved = join(PINS_DIR, `${id}-${entry.version}${platforms.length ? `-${platform ?? platforms[0]}` : ''}.vgp`);
   writeFileSync(saved, archive);
 
   // Тот же пакет той же ленты — с адресом или без. Одна сборка: строка заменяется (так же меняют одно на другое).
