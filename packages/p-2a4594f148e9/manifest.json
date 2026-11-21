@@ -3,7 +3,7 @@
   "kind": "app",
   "runtime": "process",
   "id": "p-2a4594f148e9",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "title": "VPN",
   "description": "Свои серверы для DuoWave: подписка или ссылки (VLESS с Reality и XHTTP, Hysteria 2, TUIC, Shadowsocks 2022, Trojan, AnyTLS, WireGuard). Шлюз сам решает, кому идти через сервер, а кому напрямую: модели, слух и голос, разговор колонки, приложения — каждый своей строкой. Только для колонки.",
   "languages": [
@@ -25,7 +25,7 @@
   "license": "Apache-2.0; движок shoes — MIT, его часть WireGuard — MPL-2.0 (SOURCE.md)",
   "icon": "avatar.webp",
   "api": "^2",
-  "minGateway": "0.14.0",
+  "minGateway": "0.17.2",
   "runs": [
     "station"
   ],
@@ -33,7 +33,7 @@
   "targets": {
     "linux-aarch64": {
       "file": "bin/duowave-own-server-linux-aarch64",
-      "sha256": "29203027b04314708b9568816149065d80679a0f37dc58ada14adcee6aba36c9"
+      "sha256": "48890cdb1d47a29c26fec9f04a2727836acca968a147629587b9245b88ca8de7"
     }
   },
   "health": {
@@ -41,7 +41,11 @@
     "intervalS": 15
   },
   "budget": {
-    "memoryMb": 24,
+    "memoryMb": 22,
+    "memoryMbFor": {
+      "WireGuard": 24,
+      "AnyTLS": 24
+    },
     "storageMb": 1
   },
   "permissions": [

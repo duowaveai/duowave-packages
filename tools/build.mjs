@@ -529,7 +529,12 @@ function main() {
       ...(r.code
         ? {
             runtime: r.runtime,
-            budget: { memoryMb: r.budget.memoryMb, filesMb: r.budget.filesMb },
+            budget: {
+              memoryMb: r.budget.memoryMb,
+              filesMb: r.budget.filesMb,
+              // Больше — за то, что программа использует (VPN: WireGuard, AnyTLS); шлюз проверяет по memoryMb.
+              ...(r.budget.memoryMbFor ? { memoryMbFor: r.budget.memoryMbFor } : {}),
+            },
             permissions: r.permissions,
           }
         : {}),

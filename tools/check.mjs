@@ -1216,6 +1216,19 @@ function checkCode(m, kind, files, result, foreign) {
     if (Number.isInteger(value) && value >= 1 && value <= max) budget[key] = value;
     else errors.push(`budget.${key}: целое от 1 до ${max}`);
   }
+  // Больше памяти — за то, что программа приложения называет в ответе /health (`uses`): VPN — за WireGuard и AnyTLS
+  // (шлюз 0.17.2+, gateway/src/plugins/manifest.rs). memoryMb — тогда её меньшая, обычная.
+  const memoryFor = isObject(m.budget) ? m.budget.memoryMbFor : undefined;
+  if (memoryFor !== undefined) {
+    if (!isObject(memoryFor)) errors.push('budget.memoryMbFor: объект «что использует → МБ», например {"WireGuard": 24}');
+    else {
+      budget.memoryMbFor = {};
+      for (const [name, value] of Object.entries(memoryFor)) {
+        if (name.trim() && Number.isInteger(value) && value >= 1 && value <= maxima.memoryMb) budget.memoryMbFor[name.trim()] = value;
+        else errors.push(`budget.memoryMbFor.${name}: целое от 1 до ${maxima.memoryMb}`);
+      }
+    }
+  }
   result.budget = budget;
 
   // ---- права ----

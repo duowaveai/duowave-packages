@@ -5,7 +5,7 @@
 
 | Что | Лицензия | Исходники той же версии |
 |---|---|---|
-| duowave-own-server 0.1.0 — программа приложения | Apache-2.0 | `apps/own-server/` в репозитории DuoWave: https://github.com/duowaveai/duowave/tree/main/apps/own-server |
+| duowave-own-server 0.1.2 — программа приложения | Apache-2.0 | `apps/own-server/` в репозитории DuoWave: https://github.com/duowaveai/duowave/tree/main/apps/own-server |
 | shoes 0.3.7 — движок протоколов | MIT | https://github.com/cfal/shoes/tree/d1742b93e0d3541aae75005a610d2c702ead7144 |
 | GotaTun 0.10.2 — WireGuard внутри shoes | MPL-2.0 | https://github.com/mullvad/gotatun/tree/c06582e41022bcecbf33751631fd5a63d5794dc5 (без изменений) |
 | Остальные зависимости | разные, свободные | версии — `apps/own-server/Cargo.lock`; тексты — `docs/licenses/dependencies.txt` |
