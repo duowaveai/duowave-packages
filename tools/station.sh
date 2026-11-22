@@ -34,7 +34,10 @@ if [ -n "${2:-}" ]; then
 else
     in=$work/in
     mkdir -p "$in"
-    if ! gh release download --repo "$repo" --dir "$in" --pattern station.sh --pattern "$name" --pattern "$name.sig"; then
+    # gh succeeds as soon as one pattern matches: a release before 0.18.3 has the build and its .sig but no station.sh
+    # (catalog pages run of 22.11 failed on it), so its absence is checked after the download too.
+    if ! gh release download --repo "$repo" --dir "$in" --pattern station.sh --pattern "$name" --pattern "$name.sig" ||
+        [ ! -f "$in/station.sh" ]; then
         echo "::warning::the latest release of $repo has no station.sh: the station's one-line install is not served"
         exit 0
     fi
