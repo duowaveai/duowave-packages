@@ -453,6 +453,22 @@ PACKAGES_FEED_URL=off                                  # не ходить в с
 жалобам, `updatedAt` — дата сверки. Подписывается тем же ключом, что лента:
 `scripts/sign-catalog.sh dist/reach.json` (шлюз с ключами без подписи файл не берёт — работает на своей копии).
 
+## Установка на колонку одной командой — `station.sh`
+
+Сайт держит и файлы установки DuoWave прямо с колонки. Человек зашёл на колонку по SSH и вводит там
+`wget -qO- http://get.duowave.app/station.sh | sh` (скрипт шлюза `station-client/station.sh`). Адрес по HTTP: в
+busybox колонки нет TLS. Сам сайт остаётся только по HTTPS («Enforce HTTPS» включён), а по HTTP эти файлы отдаёт
+`get.duowave.app`: Cloudflare Worker, который берёт с сайта только `/station.sh` и `/station/…`, а на остальное
+отвечает 404 (шлюз, `scripts/release/cloudflare`).
+
+`tools/station.sh dist` (шаг в `pages.yml`) берёт из последнего выпуска шлюза `station.sh` и сборку для колонки и
+кладёт их в `dist/station.sh` и `dist/station/<версия>/`, только если подпись сборки сходится с ключами
+`gateway-updates.pub` (копия `gateway/updates.pub` шлюза), а версия и SHA-256 совпадают с теми, что выпуск вписал в
+скрипт. Выпуск без `station.sh` пропускается с предупреждением.
+
+После каждого опубликованного выпуска шлюза: Actions → pages → Run workflow, чтобы сайт взял новый скрипт. Новый ключ
+обновлений шлюза (смена ключа) — сюда же, в `gateway-updates.pub`.
+
 ## Подпись
 
 Ленту подписывает CI этого репозитория (`.github/workflows/pages.yml`, сервера по-прежнему нет): с ключом каталога в

@@ -91,6 +91,18 @@ jobs:
         run: >-
           echo "::warning::no PACKAGES_SECRET_KEY in the secrets: catalog.json is unsigned, so the build left out every
           plugin and app, and gateways with the catalog's keys install no code from it"
+      # The station's one-line install (tools/station.sh): the gateway's latest station.sh and the station build it
+      # names, put on the site once the build's signature holds against gateway-updates.pub and its version and checksum
+      # match the script. The station takes them over plain HTTP (its busybox has no TLS) from get.duowave.app, a
+      # Cloudflare Worker in front of this site (the gateway's scripts/release/cloudflare); this site stays HTTPS only.
+      # A gateway release reaches the site at the next run: after publishing one, run this workflow (Actions → pages →
+      # Run workflow).
+      - name: The station's one-line install
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          command -v minisign >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends minisign; }
+          sh tools/station.sh dist
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
