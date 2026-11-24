@@ -95,8 +95,8 @@ jobs:
       # names, put on the site once the build's signature holds against gateway-updates.pub and its version and checksum
       # match the script. The station takes them over plain HTTP (its busybox has no TLS) from get.duowave.app, a
       # Cloudflare Worker in front of this site (the gateway's scripts/release/cloudflare); this site stays HTTPS only.
-      # A gateway release reaches the site at the next run: after publishing one, run this workflow (Actions → pages →
-      # Run workflow).
+      # A gateway release reaches the site at the next run: station-watch.yml starts one within the hour of a release
+      # whose station.sh names another version than the site serves (by hand: Actions → pages → Run workflow).
       - name: The station's one-line install
         env:
           GH_TOKEN: ${{ github.token }}

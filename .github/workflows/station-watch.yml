@@ -1,0 +1,45 @@
+# The station's one-line install keeps up with the gateway's releases by itself. Every hour this compares the version
+# the gateway's latest release names in its station.sh with the one this site serves (get.duowave.app takes it from
+# here), and when they differ it runs pages (pages.yml), which takes station.sh and the station build from that release
+# once their signature, version and checksum hold (tools/station.sh). Before it, every published release needed
+# Actions → pages → Run workflow by hand, and 0.18.5–0.19.0 were missed (24.11).
+#
+# A workflow of its own, not a schedule in pages.yml: pages cancels a run in progress for a newer one, and an hourly run
+# that only looks must never cancel a build after a push. github.token may start workflow_dispatch (the one event it
+# may start), so no other token is kept. A release without station.sh (before the gateway's 0.18.3) names nothing:
+# no run. GitHub stops schedules in a repository with no commits for 60 days; a push wakes it.
+name: station-watch
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+permissions:
+  actions: write
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: The latest release against the site
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          version() { sed -n 's/.*DUOWAVE_VERSION:-\([^}]*\)}.*/\1/p' | head -n 1; }
+          latest=https://github.com/duowaveai/duowave/releases/latest/download/station.sh
+          released=$(curl -fsSL --max-time 30 "$latest" 2>/dev/null | version || true)
+          served=$(curl -fsS --max-time 30 https://packages.duowave.app/station.sh 2>/dev/null | version || true)
+          echo "the gateway's latest release names ${released:-nothing}, the site serves ${served:-nothing}"
+          if [ -z "$released" ] || [ "$released" = "$served" ]; then
+            exit 0
+          fi
+          # A pages run already going takes the same latest release: no second one.
+          going=$(gh run list --repo "$REPO" --workflow pages.yml --limit 5 --json status \
+            --jq '[.[] | select(.status != "completed")] | length')
+          if [ "$going" != 0 ]; then
+            echo "pages is already running"
+            exit 0
+          fi
+          gh workflow run pages.yml --repo "$REPO" --ref main
+          echo "::notice::pages started: the site moves from ${served:-nothing} to $released"
