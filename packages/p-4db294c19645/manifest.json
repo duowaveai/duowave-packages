@@ -3,17 +3,17 @@
   "kind": "app",
   "runtime": "process",
   "id": "p-4db294c19645",
-  "version": "0.1.1",
-  "title": "AirPlay",
-  "description": "Колонка — приёмник AirPlay: iPhone, iPad и Mac играют на неё музыку и любой звук. Заиграл телефон — колонка замолкает сама; голосом: «пауза», «продолжай», «дальше», «назад». Только для колонки.",
+  "version": "0.1.2",
+  "title": "AirPlay 2",
+  "description": "Колонка — приёмник AirPlay 2: iPhone, iPad и Mac играют на неё музыку и любой звук. Заиграл телефон — колонка замолкает сама; голосом: «пауза», «продолжай», «дальше», «назад». Только для колонки.",
   "languages": [
     "ru",
     "en"
   ],
   "locales": {
     "en": {
-      "title": "AirPlay",
-      "description": "The speaker becomes an AirPlay receiver: iPhone, iPad and Mac play music and any sound on it. When the phone starts playing, the speaker falls silent itself; by voice: “pause”, “resume”, “next”, “back”. Speaker only."
+      "title": "AirPlay 2",
+      "description": "The speaker becomes an AirPlay 2 receiver: iPhone, iPad and Mac play music and any sound on it. When the phone starts playing, the speaker falls silent itself; by voice: “pause”, “resume”, “next”, “back”. Speaker only."
     }
   },
   "license": "Apache-2.0; декодер AAC — LGPL-3.0 (SOURCE.md)",
